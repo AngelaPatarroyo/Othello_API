@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Othello_API.Models;
 using Othello_API.Dtos;
+using Othello_API.Services;
+using System.Threading.Tasks;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -17,7 +19,29 @@ public class GameController : ControllerBase
     public async Task<IActionResult> StartGame([FromBody] StartGameDto gameDto)
     {
         var game = await _gameService.CreateGameAsync(gameDto);
-        return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, game);
+        
+        if (game == null) 
+            return BadRequest("Game could not be created");
+
+        // Remove sensitive player data before returning the response
+        var response = new
+        {
+            game.GameId,
+            game.GameStatus,
+            game.CreatedAt,
+            Player1 = new
+            {
+                game.Player1.UserName,
+                game.Player1.Email
+            },
+            Player2 = new
+            {
+                game.Player2.UserName,
+                game.Player2.Email
+            }
+        };
+
+        return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, response);
     }
 
     [HttpGet("{gameId}")]
@@ -25,14 +49,50 @@ public class GameController : ControllerBase
     {
         var game = await _gameService.GetGameByIdAsync(gameId);
         if (game == null) return NotFound();
-        return Ok(game);
+
+        var response = new
+        {
+            game.GameId,
+            game.GameStatus,
+            game.CreatedAt,
+            Player1 = new
+            {
+                game.Player1.UserName,
+                game.Player1.Email
+            },
+            Player2 = new
+            {
+                game.Player2.UserName,
+                game.Player2.Email
+            }
+        };
+
+        return Ok(response);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllGames()
     {
         var games = await _gameService.GetAllGamesAsync();
-        return Ok(games);
+        
+        var response = games.Select(game => new
+        {
+            game.GameId,
+            game.GameStatus,
+            game.CreatedAt,
+            Player1 = new
+            {
+                game.Player1.UserName,
+                game.Player1.Email
+            },
+            Player2 = new
+            {
+                game.Player2.UserName,
+                game.Player2.Email
+            }
+        });
+
+        return Ok(response);
     }
 
     [HttpPut("{gameId}")]

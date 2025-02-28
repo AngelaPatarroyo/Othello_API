@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "NyV3C0c3hmjAnlv1vQjX5QDUTmyQnf8UAvPy5xOMGx4=",
+  "Source": "Othello_API",
+  "BasePath": "_content/Othello_API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

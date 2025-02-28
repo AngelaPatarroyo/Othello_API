@@ -1,98 +1,93 @@
-using Microsoft.EntityFrameworkCore;
+
 using Othello_API.Models;
 using Othello_API.Dtos;
 
 public class GameService : IGameService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IGameRepository _gameRepository;
+    private readonly IUserRepository _userRepository;
 
-    public GameService(ApplicationDbContext context)
+    public GameService(IGameRepository gameRepository, IUserRepository userRepository)
     {
-        _context = context;
+        _gameRepository = gameRepository;
+        _userRepository = userRepository;
     }
 
-    // Create a game and associate players
     public async Task<Game> CreateGameAsync(StartGameDto gameDto)
     {
-        // Ensure Player1 and Player2 exist in the database
-        var player1 = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == gameDto.Player1Id);  // Fetch Player1
+        var player1 = await _userRepository.GetByIdAsync(gameDto.Player1Id);
+        var player2 = await _userRepository.GetByIdAsync(gameDto.Player2Id);
 
-        var player2 = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == gameDto.Player2Id);  // Fetch Player2
-
-        // If either player is not found, throw an exception
         if (player1 == null || player2 == null)
             throw new Exception("Players not found!");
 
-        // Check if the usernames for players are empty or null
-        if (string.IsNullOrWhiteSpace(player1.UserName) || string.IsNullOrWhiteSpace(player2.UserName))
-        {
-            throw new Exception("Players must have usernames associated with their account.");
-        }
-
-        // Create the game object and associate it with the players
         var game = new Game
         {
             Player1Id = gameDto.Player1Id,
             Player2Id = gameDto.Player2Id,
-            Player1 = player1,  // Assign full Player1 object
-            Player2 = player2,  // Assign full Player2 object
-            GameStatus = "Ongoing",  // Set initial game status
-            CreatedAt = DateTime.UtcNow  // Set creation time
+            Player1 = player1,
+            Player2 = player2,
+            GameStatus = "Ongoing",
+            CreatedAt = DateTime.UtcNow
         };
 
-        // Add the new game to the context and save it
-        _context.Games.Add(game);
-        await _context.SaveChangesAsync();
-
-        return game;  // Return the created game
+        await _gameRepository.AddAsync(game);
+        return game;
     }
 
-
-    // Get game by ID
     public async Task<Game?> GetGameByIdAsync(int gameId)
     {
-        return await _context.Games
-            .Include(g => g.Player1)  // Include Player1 details
-            .Include(g => g.Player2)  // Include Player2 details
-            .FirstOrDefaultAsync(g => g.GameId == gameId);
+        return await _gameRepository.GetByIdAsync(gameId);
     }
 
-    // Get all games
     public async Task<List<Game>> GetAllGamesAsync()
     {
-        return await _context.Games
-            .Include(g => g.Player1)  // Include Player1 details
-            .Include(g => g.Player2)  // Include Player2 details
-            .ToListAsync();
+        return await _gameRepository.GetAllAsync();
     }
 
-    // Update game status and winner if provided
-    public async Task<bool> UpdateGameAsync(int gameId, UpdateGameDto dto)
+   public async Task<bool> UpdateGameAsync(int gameId, UpdateGameDto dto)
+{
+    var game = await _gameRepository.GetByIdAsync(gameId);
+    if (game == null) return false;
+
+    game.GameStatus = dto.GameStatus;
+
+    // Ensure WinnerId is not null or empty
+    if (!string.IsNullOrEmpty(dto.WinnerId))
     {
-        var game = await _context.Games.FindAsync(gameId);
-        if (game == null) return false;
-
-        game.GameStatus = dto.Status ?? game.GameStatus;
-
-        if (!string.IsNullOrEmpty(dto.WinnerId))
+        var winner = await _userRepository.GetByIdAsync(dto.WinnerId);
+        if (winner != null && (winner.Id == game.Player1.Id || winner.Id == game.Player2.Id))
         {
-            game.WinnerId = dto.WinnerId;
-        }
+            game.Winner = winner;
+            game.WinnerId = winner.Id; // Ensures WinnerId is stored in the database
 
-        await _context.SaveChangesAsync();
-        return true;
+            // Update the Leaderboard logic
+            var leaderboardEntry = await _gameRepository.GetLeaderboardEntryByPlayerIdAsync(winner.Id);
+            if (leaderboardEntry != null)
+            {
+                leaderboardEntry.Wins++; // Increase win count
+                await _gameRepository.UpdateLeaderboardAsync(leaderboardEntry);
+            }
+            else
+            {
+                var newLeaderboardEntry = new LeaderBoard
+                {
+                    PlayerId = winner.Id,
+                    Wins = 1,
+                    Player = winner
+                };
+                await _gameRepository.AddLeaderboardEntryAsync(newLeaderboardEntry);
+            }
+        }
     }
 
-    // Delete a game by ID
+    await _gameRepository.UpdateAsync(game);
+    return true;
+}
+
+
     public async Task<bool> DeleteGameAsync(int gameId)
     {
-        var game = await _context.Games.FindAsync(gameId);
-        if (game == null) return false;
-
-        _context.Games.Remove(game);
-        await _context.SaveChangesAsync();
-        return true;
+        return await _gameRepository.DeleteAsync(gameId);
     }
 }

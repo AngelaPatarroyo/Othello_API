@@ -1,21 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Identity;
+using Othello_API.Models;
 
-namespace Othello_API.Models
+public class LeaderBoard
 {
-    public class LeaderBoard
-    {
-        [Key]
-        public int LeaderBoardId { get; set; } // Unique Leaderboard ID
+    [Key]
+    public int Id { get; set; }
 
-        [Required]
-        [ForeignKey("User")]
-        public string? UserId { get; set; } // IdentityUser uses string ID
+    [Required]
+    [ForeignKey("Player")]
+    public string PlayerId { get; set; } = string.Empty;
 
-        public int? Ranking { get; set; }
+    public int Wins { get; set; } = 0;
 
-        // Relationship with ApplicationUser
-        public virtual ApplicationUser? User { get; set; }
-    }
+    public virtual required ApplicationUser Player { get; set; }
 }

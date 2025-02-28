@@ -12,7 +12,7 @@ namespace Othello_API.Migrations
         {
             migrationBuilder.AlterColumn<int>(
                 name: "Ranking",
-                table: "LeaderBoards",
+                table: "LeaderBoard",
                 type: "INTEGER",
                 nullable: true,
                 oldClrType: typeof(int),

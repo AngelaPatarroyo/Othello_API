@@ -10,7 +10,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // DbSets for your models
     public DbSet<Game> Games { get; set; }
     public DbSet<UserGame> UserGames { get; set; }
-    public DbSet<LeaderBoard> LeaderBoards { get; set; }
+    public DbSet<LeaderBoard> LeaderBoard { get; set; }
     public DbSet<Move> Moves { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -20,8 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Configure Identity relationships (if needed)
         modelBuilder.Entity<ApplicationUser>()
             .HasOne(u => u.LeaderBoard)
-            .WithOne(lb => lb.User)
-            .HasForeignKey<LeaderBoard>(lb => lb.UserId)
+            .WithOne(lb => lb.Player)
+            .HasForeignKey<LeaderBoard>(lb => lb.PlayerId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Many-to-Many Relationship: User <-> Game via UserGame

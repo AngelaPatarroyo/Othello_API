@@ -1,8 +1,5 @@
-namespace Othello_API.Dtos
+public class UpdateGameDto
 {
-    public class UpdateGameDto
-    {
-        public string? Status { get; set; }  
-        public string? WinnerId { get; set; }
-    }
+    public required string GameStatus { get; set; }  
+    public string? WinnerId { get; set; }  // Nullable since there might be no winner yet
 }

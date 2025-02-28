@@ -267,7 +267,7 @@ namespace Othello_API.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("LeaderBoards");
+                    b.ToTable("LeaderBoard");
                 });
 
             modelBuilder.Entity("Othello_API.Models.Move", b =>

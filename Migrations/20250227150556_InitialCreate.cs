@@ -186,7 +186,7 @@ namespace Othello_API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "LeaderBoards",
+                name: "LeaderBoard",
                 columns: table => new
                 {
                     LeaderBoardId = table.Column<int>(type: "INTEGER", nullable: false)
@@ -196,9 +196,9 @@ namespace Othello_API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LeaderBoards", x => x.LeaderBoardId);
+                    table.PrimaryKey("PK_LeaderBoard", x => x.LeaderBoardId);
                     table.ForeignKey(
-                        name: "FK_LeaderBoards_AspNetUsers_UserId",
+                        name: "FK_LeaderBoard_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
@@ -311,8 +311,8 @@ namespace Othello_API.Migrations
                 column: "Player2Id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LeaderBoards_UserId",
-                table: "LeaderBoards",
+                name: "IX_LeaderBoard_UserId",
+                table: "LeaderBoard",
                 column: "UserId",
                 unique: true);
 
@@ -356,7 +356,7 @@ namespace Othello_API.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "LeaderBoards");
+                name: "LeaderBoard");
 
             migrationBuilder.DropTable(
                 name: "Moves");

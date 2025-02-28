@@ -11,7 +11,7 @@ namespace Othello_API.Models
         public int GameId { get; set; }  // Foreign key for the game
 
         [Required]
-        public string? PlayerId { get; set; } // Foreign key for the player (User)
+        public required string PlayerId { get; set; } // Foreign key for the player (User)
 
         [Required]
         public int Row { get; set; }  // Row coordinate of the move

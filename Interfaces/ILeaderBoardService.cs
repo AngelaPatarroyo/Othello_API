@@ -1,14 +1,7 @@
-namespace Othello_API.Interfaces
-{
-    using Othello_API.Models;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
 
-    public interface ILeaderBoardService
-    {
-        Task<List<LeaderBoard>> GetLeaderboardAsync();
-        
-        
-        Task<int?> GetUserRankingAsync(string userId);
-    }
+
+public interface ILeaderBoardService
+{
+    Task<List<LeaderboardDto>> GetLeaderboardAsync();  // Fetch full leaderboard
+    Task<LeaderboardDto?> GetUserRankingAsync(string userId);  // Fetch a specific user's ranking
 }

@@ -1,13 +1,14 @@
-using Microsoft.AspNetCore.Identity;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
+using Othello_API.Models;
 
-namespace Othello_API.Models
+public class ApplicationUser : IdentityUser
 {
-    public class ApplicationUser : IdentityUser
-    {
-        // You can add custom fields if needed
-        public virtual List<UserGame> UserGames { get; set; } = new();
-        public virtual LeaderBoard? LeaderBoard { get; set; }
-    }
-    
+    [JsonIgnore]
+    public virtual List<UserGame> UserGames { get; set; } = new();
+
+    [JsonIgnore]
+    public virtual LeaderBoard? LeaderBoard { get; set; }
 }

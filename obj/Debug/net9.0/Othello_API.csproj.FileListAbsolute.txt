@@ -161,3 +161,4 @@
 /Users/angela/Desktop/Web Application/Othello_API/obj/Debug/net9.0/Othello_API.pdb
 /Users/angela/Desktop/Web Application/Othello_API/obj/Debug/net9.0/Othello_API.genruntimeconfig.cache
 /Users/angela/Desktop/Web Application/Othello_API/obj/Debug/net9.0/ref/Othello_API.dll
+/Users/angela/Desktop/Web Application/Othello_API/obj/Debug/net9.0/Othello_API.sourcelink.json

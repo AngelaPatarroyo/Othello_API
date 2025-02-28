@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -19,12 +18,12 @@ namespace Othello_API.Models
 
         // Player References
         [ForeignKey("Player1")]
-        public string? Player1Id { get; set; }
-        public virtual ApplicationUser? Player1 { get; set; }
+        public required string Player1Id { get; set; }
+        public virtual required ApplicationUser Player1 { get; set; }
 
         [ForeignKey("Player2")]
-        public string? Player2Id { get; set; }
-        public virtual ApplicationUser? Player2 { get; set; }
+        public required string Player2Id { get; set; }
+        public virtual required ApplicationUser Player2 { get; set; }
 
         // Add WinnerId (nullable)
         [ForeignKey("Winner")]

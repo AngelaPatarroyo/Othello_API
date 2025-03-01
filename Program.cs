@@ -5,6 +5,7 @@ using Othello_API.Interfaces;
 using Othello_API.Services;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using Othello_API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,11 +24,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-        options.JsonSerializerOptions.WriteIndented = true; // Optional: makes JSON output more readable
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep property names as defined
+        options.JsonSerializerOptions.WriteIndented = true; // Pretty JSON formatting
     });
-
 
 
 // Register services and repositories (Dependency Injection)
@@ -35,9 +34,11 @@ builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IMoveService, MoveService>();
 builder.Services.AddScoped<ILeaderBoardService, LeaderBoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserGameService, UserGameService>(); // Added UserGame service
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();  
 builder.Services.AddScoped<IGameRepository, GameRepository>(); 
+builder.Services.AddScoped<IUserGameRepository, UserGameRepository>(); // Added UserGame repository
 
 // Add API exploration and Swagger for documentation
 builder.Services.AddEndpointsApiExplorer();

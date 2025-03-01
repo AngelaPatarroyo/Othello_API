@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Othello_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250301022205_FixUserGameNavigationFinal")]
+    partial class FixUserGameNavigationFinal
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.2");
@@ -78,44 +81,6 @@ namespace Othello_API.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("Game", b =>
-                {
-                    b.Property<int>("GameId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("GameStatus")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Player1Id")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Player2Id")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Result")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("WinnerId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("GameId");
-
-                    b.HasIndex("Player1Id");
-
-                    b.HasIndex("Player2Id");
-
-                    b.HasIndex("WinnerId");
-
-                    b.ToTable("Games");
                 });
 
             modelBuilder.Entity("LeaderBoard", b =>
@@ -267,6 +232,44 @@ namespace Othello_API.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Othello_API.Models.Game", b =>
+                {
+                    b.Property<int>("GameId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GameStatus")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Player1Id")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Player2Id")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Result")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WinnerId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("GameId");
+
+                    b.HasIndex("Player1Id");
+
+                    b.HasIndex("Player2Id");
+
+                    b.HasIndex("WinnerId");
+
+                    b.ToTable("Games");
+                });
+
             modelBuilder.Entity("Othello_API.Models.Move", b =>
                 {
                     b.Property<int>("MoveId")
@@ -332,31 +335,6 @@ namespace Othello_API.Migrations
                     b.ToTable("UserGames");
                 });
 
-            modelBuilder.Entity("Game", b =>
-                {
-                    b.HasOne("ApplicationUser", "Player1")
-                        .WithMany()
-                        .HasForeignKey("Player1Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "Player2")
-                        .WithMany()
-                        .HasForeignKey("Player2Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "Winner")
-                        .WithMany()
-                        .HasForeignKey("WinnerId");
-
-                    b.Navigation("Player1");
-
-                    b.Navigation("Player2");
-
-                    b.Navigation("Winner");
-                });
-
             modelBuilder.Entity("LeaderBoard", b =>
                 {
                     b.HasOne("ApplicationUser", "Player")
@@ -419,9 +397,34 @@ namespace Othello_API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Othello_API.Models.Game", b =>
+                {
+                    b.HasOne("ApplicationUser", "Player1")
+                        .WithMany()
+                        .HasForeignKey("Player1Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "Player2")
+                        .WithMany()
+                        .HasForeignKey("Player2Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "Winner")
+                        .WithMany()
+                        .HasForeignKey("WinnerId");
+
+                    b.Navigation("Player1");
+
+                    b.Navigation("Player2");
+
+                    b.Navigation("Winner");
+                });
+
             modelBuilder.Entity("Othello_API.Models.Move", b =>
                 {
-                    b.HasOne("Game", "Game")
+                    b.HasOne("Othello_API.Models.Game", "Game")
                         .WithMany("Moves")
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -444,7 +447,7 @@ namespace Othello_API.Migrations
                         .WithMany("UserGames")
                         .HasForeignKey("ApplicationUserId");
 
-                    b.HasOne("Game", null)
+                    b.HasOne("Othello_API.Models.Game", null)
                         .WithMany("UserGames")
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -458,7 +461,7 @@ namespace Othello_API.Migrations
                     b.Navigation("UserGames");
                 });
 
-            modelBuilder.Entity("Game", b =>
+            modelBuilder.Entity("Othello_API.Models.Game", b =>
                 {
                     b.Navigation("Moves");
 

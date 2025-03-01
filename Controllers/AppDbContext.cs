@@ -17,7 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Identity relationships (if needed)
+        // Configure Identity relationships
         modelBuilder.Entity<ApplicationUser>()
             .HasOne(u => u.LeaderBoard)
             .WithOne(lb => lb.Player)
@@ -45,12 +45,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(g => g.Player1)
             .WithMany()
             .HasForeignKey(g => g.Player1Id)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deletion if game exists
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Game>()
             .HasOne(g => g.Player2)
             .WithMany()
             .HasForeignKey(g => g.Player2Id)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deletion if game exists
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Prevent EF Core from auto-including navigation properties in UserGame
+        modelBuilder.Entity<UserGame>()
+            .Ignore(ug => ug.User)
+            .Ignore(ug => ug.Game);
     }
 }

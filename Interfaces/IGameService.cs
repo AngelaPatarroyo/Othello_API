@@ -1,5 +1,6 @@
+using Othello_API.DTOs;
 using Othello_API.Models;
-using Othello_API.Dtos;
+
 
 public interface IGameService
 {

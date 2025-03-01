@@ -11,4 +11,9 @@ public class ApplicationUser : IdentityUser
 
     [JsonIgnore]
     public virtual LeaderBoard? LeaderBoard { get; set; }
+
+
+
+   
+    
 }

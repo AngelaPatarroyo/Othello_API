@@ -5,20 +5,19 @@ using Othello_API.Models;
 public class UserGame
 {
     [Key]
-    public int UserGameId { get; set; }  // Primary Key
+    public int UserGameId { get; set; } 
 
     [Required]
-    [ForeignKey("User")]
-    public string UserId { get; set; } = null!;  // Foreign Key (Non-Nullable)
-
-    public virtual ApplicationUser? User { get; set; }  // Navigation Property (Nullable)
+    public string UserId { get; set; } = null!; 
 
     [Required]
-    [ForeignKey("Game")]
-    public int GameId { get; set; }  // Foreign Key (Non-Nullable)
+    public int GameId { get; set; }  
 
-    public virtual Game? Game { get; set; }  // Navigation Property (Nullable)
 
+    public virtual ApplicationUser User { get; set; } = null!;  
+    public virtual Game Game { get; set; } = null!;  
+
+    // Extra Stats
     public int TotalWins { get; set; } = 0;
     public int TotalLosses { get; set; } = 0;
     public int TotalGames { get; set; } = 0;

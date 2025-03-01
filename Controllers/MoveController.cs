@@ -6,7 +6,7 @@ using Othello_API.Models;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize] // Requires authentication
+//[Authorize] // Requires authentication
 public class MoveController : ControllerBase
 {
     private readonly IMoveService _moveService;

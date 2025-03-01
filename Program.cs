@@ -17,6 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
     .Build();
 
 // Add logging to the console
@@ -32,9 +34,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-#pragma warning disable CS8604 // Possible null reference argument.
-var key = Encoding.UTF8.GetBytes(config["JwtSettings:Secret"]);
-#pragma warning restore CS8604 // Possible null reference argument.
+var key = Encoding.UTF8.GetBytes(config["JwtSettings:Secret"] ?? throw new InvalidOperationException("JWT Secret is missing"));
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -45,14 +46,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ValidateIssuer = true,
-            ValidIssuer = config["JwtSettings:Issuer"], 
+            ValidIssuer = config["JwtSettings:Issuer"],
             ValidateAudience = true,
-            ValidAudience = config["JwtSettings:Audience"], 
+            ValidAudience = config["JwtSettings:Audience"],
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
     });
-
 
 // Add Authorization Policies
 builder.Services.AddAuthorization(options =>

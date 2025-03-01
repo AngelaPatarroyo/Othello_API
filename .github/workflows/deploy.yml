@@ -28,6 +28,7 @@ jobs:
         run: |
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> $GITHUB_ENV
           echo "DB_CONNECTION=${{ secrets.DB_CONNECTION }}" >> $GITHUB_ENV
+      
 
       - name: Run tests
         run: dotnet test --no-build --configuration Release

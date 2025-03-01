@@ -2,13 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Othello_API.Models;
 using Othello_API.Interfaces;
 using Othello_API.Services;
 using Othello_API.Repositories;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using System.Text.Json.Serialization;
+
 
 // Build Configuration
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +32,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
 
 var key = Encoding.UTF8.GetBytes(config["JwtSettings:Secret"] ?? throw new InvalidOperationException("JWT Secret is missing"));
 
@@ -113,7 +113,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
+builder.Services.AddScoped<EmailService>();
 // Build the application
 var app = builder.Build();
 

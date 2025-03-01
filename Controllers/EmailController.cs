@@ -15,7 +15,7 @@ public class EmailController : ControllerBase
     [HttpPost("send-test-email")]
     public async Task<IActionResult> SendTestEmail()
     {
-        await _emailService.SendEmailAsync("recipient@example.com", "Test Email", "This is a test email.");
+        await _emailService.SendEmailAsync("angela.melbynrojo@gmail.com", "Test Email", "This is a test email.");
         return Ok("Email Sent Successfully!");
     }
 }

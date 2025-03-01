@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Othello_API.Models;
 using Othello_API.Dtos;
+using Othello_API.Interfaces;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -29,14 +30,14 @@ public class UserController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        var result = await _userService.LoginUserAsync(loginDto);
+        var token = await _userService.LoginUserAsync(loginDto);
 
-        if (result == null)
+        if (string.IsNullOrEmpty(token))
         {
             return Unauthorized(new { message = "Invalid login credentials" });
         }
 
-        return Ok(new { message = result });
+        return Ok(new { token });
     }
 
     [HttpGet]

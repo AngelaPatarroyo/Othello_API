@@ -6,7 +6,7 @@ using Othello_API.Models;
 
 [Route("api/[controller]")]
 [ApiController]
-//[Authorize] // Requires authentication
+[Authorize] // Requires authentication
 public class MoveController : ControllerBase
 {
     private readonly IMoveService _moveService;
@@ -17,6 +17,7 @@ public class MoveController : ControllerBase
     }
 
     // Make a move
+    [Authorize]
     [HttpPost("{gameId}/move")]
     public async Task<IActionResult> MakeMove(int gameId, [FromBody] MoveDto moveDto)
     {

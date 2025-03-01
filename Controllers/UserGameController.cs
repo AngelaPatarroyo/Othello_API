@@ -1,20 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Othello_API.Models;
 using Othello_API.DTOs;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
+
 
 [Route("api/[controller]")]
 [ApiController]
 public class UserGameController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<UserGameController> _logger;
 
-    public UserGameController(ApplicationDbContext context)
+    public UserGameController(ApplicationDbContext context, ILogger<UserGameController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // GET: api/UserGame
@@ -22,6 +22,8 @@ public class UserGameController : ControllerBase
     [Produces("application/json")]
     public async Task<IActionResult> GetUserGames()
     {
+        _logger.LogInformation("Fetching all user games from the database.");
+
         var userGames = await _context.UserGames
             .Select(ug => new
             {
@@ -33,8 +35,11 @@ public class UserGameController : ControllerBase
 
         if (!userGames.Any())
         {
+            _logger.LogWarning("No user games found.");
             return NotFound("No user games found.");
         }
+
+        _logger.LogInformation("Successfully fetched {UserGameCount} user games.", userGames.Count);
 
         return Ok(userGames);
     }
@@ -43,6 +48,8 @@ public class UserGameController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserGameById(int id)
     {
+        _logger.LogInformation("Fetching user game with ID {UserGameId}.", id);
+
         var userGame = await _context.UserGames
             .Where(ug => ug.UserGameId == id)
             .Select(ug => new
@@ -55,8 +62,11 @@ public class UserGameController : ControllerBase
 
         if (userGame == null)
         {
+            _logger.LogWarning("UserGame with ID {UserGameId} not found.", id);
             return NotFound("User game not found.");
         }
+
+        _logger.LogInformation("Successfully fetched user game with ID {UserGameId}.", id);
 
         return Ok(userGame);
     }
@@ -67,13 +77,17 @@ public class UserGameController : ControllerBase
     {
         if (userGameDto == null || string.IsNullOrEmpty(userGameDto.UserId) || userGameDto.GameId == 0)
         {
+            _logger.LogWarning("UserId or GameId is missing in the request.");
             return BadRequest("UserId and GameId are required.");
         }
+
+        _logger.LogInformation("Attempting to create a new UserGame for UserId: {UserId}, GameId: {GameId}.", userGameDto.UserId, userGameDto.GameId);
 
         // Validate if the User exists
         var userExists = await _context.Users.AnyAsync(u => u.Id == userGameDto.UserId);
         if (!userExists)
         {
+            _logger.LogWarning("User with ID {UserId} does not exist.", userGameDto.UserId);
             return BadRequest("User does not exist.");
         }
 
@@ -81,6 +95,7 @@ public class UserGameController : ControllerBase
         var gameExists = await _context.Games.AnyAsync(g => g.GameId == userGameDto.GameId);
         if (!gameExists)
         {
+            _logger.LogWarning("Game with ID {GameId} does not exist.", userGameDto.GameId);
             return BadRequest("Game does not exist.");
         }
 
@@ -90,6 +105,7 @@ public class UserGameController : ControllerBase
 
         if (existingUserGame != null)
         {
+            _logger.LogWarning("UserId {UserId} is already part of the game with GameId {GameId}.", userGameDto.UserId, userGameDto.GameId);
             return Conflict("User is already part of this game.");
         }
 
@@ -106,6 +122,8 @@ public class UserGameController : ControllerBase
         _context.UserGames.Add(newUserGame);
         await _context.SaveChangesAsync();
 
+        _logger.LogInformation("UserGame created successfully with ID {UserGameId}.", newUserGame.UserGameId);
+
         return CreatedAtAction(nameof(GetUserGameById), new { id = newUserGame.UserGameId }, newUserGame);
     }
 
@@ -113,14 +131,19 @@ public class UserGameController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUserGame(int id)
     {
+        _logger.LogInformation("Attempting to delete UserGame with ID {UserGameId}.", id);
+
         var userGame = await _context.UserGames.FindAsync(id);
         if (userGame == null)
         {
+            _logger.LogWarning("UserGame with ID {UserGameId} not found for deletion.", id);
             return NotFound("User game not found.");
         }
 
         _context.UserGames.Remove(userGame);
         await _context.SaveChangesAsync();
+
+        _logger.LogInformation("UserGame with ID {UserGameId} deleted successfully.", id);
 
         return NoContent();
     }

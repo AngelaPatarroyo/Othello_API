@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Othello_API.Models;
+
 
 public interface IGameRepository
 {

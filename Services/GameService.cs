@@ -1,30 +1,30 @@
 using Othello_API.DTOs;
-using Othello_API.Models;
-using Othello_API.Repositories;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 
 public class GameService : IGameService
 {
     private readonly IGameRepository _gameRepository;
     private readonly IUserRepository _userRepository;
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<GameService> _logger;
 
-    public GameService(IGameRepository gameRepository, IUserRepository userRepository, ApplicationDbContext context)
+    public GameService(IGameRepository gameRepository, IUserRepository userRepository, ApplicationDbContext context, ILogger<GameService> logger)
     {
         _gameRepository = gameRepository;
         _userRepository = userRepository;
         _context = context;
+        _logger = logger;
     }
 
-  
     public async Task<Game> CreateGameAsync(StartGameDto gameDto)
     {
+        _logger.LogInformation("Attempting to create a game with Player1Id: {Player1Id} and Player2Id: {Player2Id}.", gameDto.Player1Id, gameDto.Player2Id);
+
         // Validate input
         if (gameDto == null || string.IsNullOrEmpty(gameDto.Player1Id) || string.IsNullOrEmpty(gameDto.Player2Id))
         {
+            _logger.LogError("Player1Id or Player2Id is missing.");
             throw new ArgumentException("Player1Id and Player2Id are required.");
         }
 
@@ -34,6 +34,7 @@ public class GameService : IGameService
 
         if (player1 == null || player2 == null)
         {
+            _logger.LogError("One or both players do not exist. Player1Id: {Player1Id}, Player2Id: {Player2Id}", gameDto.Player1Id, gameDto.Player2Id);
             throw new ArgumentException("One or both players do not exist.");
         }
 
@@ -49,6 +50,7 @@ public class GameService : IGameService
 
         _context.Games.Add(game);
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Game with ID {GameId} created successfully.", game.GameId);
 
         // Load Player1 and Player2 to ensure they are properly assigned
         game = await _context.Games
@@ -58,6 +60,14 @@ public class GameService : IGameService
 
         if (game?.Player1 == null || game?.Player2 == null)
         {
+            if (game == null)
+            {
+                _logger.LogError("Failed to associate players with game ID {GameId}.", gameDto.Player1Id);
+            }
+            else
+            {
+                _logger.LogError("Failed to associate players with game ID {GameId}.", game.GameId);
+            }
             throw new Exception("Failed to associate players with the game.");
         }
 
@@ -69,20 +79,36 @@ public class GameService : IGameService
     /// </summary>
     public async Task<Game?> GetGameByIdAsync(int gameId)
     {
-        return await _gameRepository.GetByIdAsync(gameId);
+        _logger.LogInformation("Fetching game with ID {GameId}.", gameId);
+        var game = await _gameRepository.GetByIdAsync(gameId);
+
+        if (game == null)
+        {
+            _logger.LogWarning("Game with ID {GameId} not found.", gameId);
+        }
+
+        return game;
     }
 
-   
     public async Task<List<Game>> GetAllGamesAsync()
     {
-        return await _gameRepository.GetAllAsync();
+        _logger.LogInformation("Fetching all games.");
+        var games = await _gameRepository.GetAllAsync();
+
+        _logger.LogInformation("Retrieved {GameCount} games.", games.Count);
+        return games;
     }
 
-    
     public async Task<bool> UpdateGameAsync(int gameId, UpdateGameDto dto)
     {
+        _logger.LogInformation("Updating game with ID {GameId}.", gameId);
+
         var game = await _gameRepository.GetByIdAsync(gameId);
-        if (game == null) return false;
+        if (game == null)
+        {
+            _logger.LogWarning("Game with ID {GameId} not found for update.", gameId);
+            return false;
+        }
 
         game.GameStatus = dto.GameStatus;
 
@@ -92,7 +118,7 @@ public class GameService : IGameService
             if (winner != null && (winner.Id == game.Player1Id || winner.Id == game.Player2Id))
             {
                 game.Winner = winner;
-                game.WinnerId = winner.Id; // Ensures WinnerId is stored in the database
+                game.WinnerId = winner.Id;
 
                 // Update the Leaderboard logic
                 var leaderboardEntry = await _gameRepository.GetLeaderboardEntryByPlayerIdAsync(winner.Id);
@@ -111,6 +137,8 @@ public class GameService : IGameService
                     };
                     await _gameRepository.AddLeaderboardEntryAsync(newLeaderboardEntry);
                 }
+
+                _logger.LogInformation("Game with ID {GameId} has been updated with winner {WinnerId}.", gameId, winner.Id);
             }
         }
 
@@ -120,6 +148,18 @@ public class GameService : IGameService
 
     public async Task<bool> DeleteGameAsync(int gameId)
     {
-        return await _gameRepository.DeleteAsync(gameId);
+        _logger.LogInformation("Deleting game with ID {GameId}.", gameId);
+        var success = await _gameRepository.DeleteAsync(gameId);
+
+        if (success)
+        {
+            _logger.LogInformation("Game with ID {GameId} deleted successfully.", gameId);
+        }
+        else
+        {
+            _logger.LogWarning("Game with ID {GameId} not found for deletion.", gameId);
+        }
+
+        return success;
     }
 }

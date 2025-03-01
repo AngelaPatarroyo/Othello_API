@@ -1,8 +1,6 @@
 using Othello_API.Interfaces;
-using Othello_API.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 
 namespace Othello_API.Repositories
 {

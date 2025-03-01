@@ -1,4 +1,3 @@
-using Othello_API.Models;
 
 public class UserRepository : IUserRepository
 {

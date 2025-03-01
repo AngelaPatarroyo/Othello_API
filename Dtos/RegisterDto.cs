@@ -5,7 +5,7 @@ namespace Othello_API.Dtos
     public class RegisterDto
     {
         [Required(ErrorMessage = "Username is required")]
-        public string Username { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email is required")]
         [EmailAddress(ErrorMessage = "Invalid email format")]

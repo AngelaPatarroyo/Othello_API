@@ -3,7 +3,6 @@ using Othello_API.Models;
 using Othello_API.Dtos;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace Othello_API.Services
 {
     public class MoveService : IMoveService
@@ -19,7 +18,8 @@ namespace Othello_API.Services
 
         public async Task<Move> MakeMoveAsync(int gameId, MoveDto moveDto)
         {
-            _logger.LogInformation("Attempting to make a move in GameId {GameId} by Player {PlayerId}.", gameId, moveDto.PlayerId);
+            _logger.LogInformation("Attempting move in GameId {GameId} by User {UserId} at Row {Row}, Column {Column}.", 
+                gameId, moveDto.PlayerId, moveDto.Row, moveDto.Column);
 
             var game = await _context.Games
                 .Include(g => g.Moves)
@@ -33,7 +33,14 @@ namespace Othello_API.Services
 
             await _context.Entry(game).Collection(g => g.Moves).LoadAsync();
 
-            int moveNumber = game.Moves.Any() ? game.Moves.Count + 1 : 1;
+            if (game.Moves.Any(m => m.Row == moveDto.Row && m.Column == moveDto.Column))
+            {
+                _logger.LogWarning("Move at Row {Row}, Column {Column} is already occupied in GameId {GameId}.", 
+                    moveDto.Row, moveDto.Column, gameId);
+                throw new InvalidOperationException("Move position is already occupied.");
+            }
+
+            int moveNumber = game.Moves.Count + 1;
 
             var move = new Move
             {
@@ -44,15 +51,26 @@ namespace Othello_API.Services
                 MoveNumber = moveNumber
             };
 
-            _context.Moves.Add(move);
-            await _context.SaveChangesAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Moves.Add(move);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-            _logger.LogInformation("Move {MoveNumber} made successfully for GameId {GameId} by Player {PlayerId}.", moveNumber, gameId, moveDto.PlayerId);
+                _logger.LogInformation("Move {MoveNumber} successfully made for GameId {GameId} by User {UserId}.", 
+                    moveNumber, gameId, moveDto.PlayerId);
 
-            return move;
+                return move;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error making move for GameId {GameId} by User {UserId}.", gameId, moveDto.PlayerId);
+                throw;
+            }
         }
 
-        // Get all moves for a specific game
         public async Task<List<Move>> GetMovesByGameIdAsync(int gameId)
         {
             _logger.LogInformation("Fetching all moves for GameId {GameId}.", gameId);
@@ -62,13 +80,13 @@ namespace Othello_API.Services
                 .OrderBy(m => m.MoveNumber)
                 .ToListAsync();
 
-            if (moves.Count == 0)
+            if (!moves.Any())
             {
                 _logger.LogWarning("No moves found for GameId {GameId}.", gameId);
             }
             else
             {
-                _logger.LogInformation("Successfully retrieved {MoveCount} moves for GameId {GameId}.", moves.Count, gameId);
+                _logger.LogInformation("Retrieved {MoveCount} moves for GameId {GameId}.", moves.Count, gameId);
             }
 
             return moves;

@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Explicitly load configuration (Environment Variables FIRST)
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
-    .AddEnvironmentVariables() // 🔹 Load Environment Variables FIRST
+    .AddEnvironmentVariables() // Load Environment Variables FIRST
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .Build();
@@ -49,7 +49,31 @@ if (string.IsNullOrEmpty(jwtSecret))
     throw new InvalidOperationException("JWT Secret is missing. Set it as an environment variable or in GitHub Secrets.");
 }
 
-var key = Encoding.UTF8.GetBytes(jwtSecret);
+// Handle JWT Secret Key properly
+byte[] key;
+if (jwtSecret.Length >= 44 && jwtSecret.EndsWith("="))
+{
+    try
+    {
+        key = Convert.FromBase64String(jwtSecret);
+        Console.WriteLine($"Decoded Base64 JWT Secret. Key length: {key.Length} bytes.");
+    }
+    catch (FormatException)
+    {
+        Console.WriteLine("JWT Secret was expected to be Base64 but failed decoding. Using as plain text.");
+        key = Encoding.UTF8.GetBytes(jwtSecret);
+    }
+}
+else
+{
+    Console.WriteLine("Using plain text JWT Secret.");
+    key = Encoding.UTF8.GetBytes(jwtSecret);
+}
+
+if (key.Length < 32)
+{
+    throw new InvalidOperationException($"JWT Secret key must be at least 32 bytes, but found {key.Length} bytes.");
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -80,7 +104,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.WithOrigins("https://your-frontend-domain.com", "http://localhost:3000") 
+        policy => policy.WithOrigins("https://your-frontend-domain.com", "http://localhost:3000")
                         .AllowAnyMethod()
                         .WithHeaders("Authorization", "Content-Type"));
 });
@@ -105,7 +129,32 @@ builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 
 // Add API documentation (Swagger)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Othello_API", Version = "1.0" });
+
+    // 🔹 Add JWT authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer YOUR_TOKEN_HERE'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            new string[] { }
+        }
+    });
+});
+
 
 builder.Services.AddScoped<EmailService>();
 

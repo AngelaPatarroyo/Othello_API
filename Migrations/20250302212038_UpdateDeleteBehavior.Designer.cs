@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Othello_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250302212038_UpdateDeleteBehavior")]
+    partial class UpdateDeleteBehavior
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.2");
@@ -95,9 +98,11 @@ namespace Othello_API.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Player1Id")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Player2Id")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Result")
@@ -336,12 +341,14 @@ namespace Othello_API.Migrations
                     b.HasOne("ApplicationUser", "Player1")
                         .WithMany()
                         .HasForeignKey("Player1Id")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("ApplicationUser", "Player2")
                         .WithMany()
                         .HasForeignKey("Player2Id")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("ApplicationUser", "Winner")
                         .WithMany()

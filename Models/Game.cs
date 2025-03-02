@@ -16,13 +16,13 @@ public class Game
     [Required]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Player References
-    public required string Player1Id { get; set; }
+    //  Make Player IDs nullable
+    public string? Player1Id { get; set; }
     
     [JsonIgnore]
     public virtual ApplicationUser? Player1 { get; set; }
 
-    public required string Player2Id { get; set; }
+    public string? Player2Id { get; set; }
     
     [JsonIgnore]
     public virtual ApplicationUser? Player2 { get; set; }

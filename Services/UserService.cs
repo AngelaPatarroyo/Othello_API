@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Othello_API.Dtos;
 using Othello_API.Interfaces;
+using Othello_API.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -15,18 +16,26 @@ namespace Othello_API.Services
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _config;
         private readonly ILogger<UserService> _logger;
+        private readonly ApplicationDbContext _dbContext;
 
-        public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration config, ILogger<UserService> logger)
+        public UserService(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IConfiguration config,
+            ILogger<UserService> logger,
+            ApplicationDbContext dbContext)  // Inject _dbContext
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
+        //  Register User
         public async Task<ApplicationUser?> RegisterUserAsync(RegisterDto registerDto)
         {
-            _logger.LogInformation("Registering user with username: {Username}, email: {Email}.", registerDto.UserName, registerDto.Email);
+            _logger.LogInformation("Registering user: {Username}, Email: {Email}", registerDto.UserName, registerDto.Email);
 
             var user = new ApplicationUser { UserName = registerDto.UserName, Email = registerDto.Email };
             var result = await _userManager.CreateAsync(user, registerDto.Password);
@@ -41,16 +50,14 @@ namespace Othello_API.Services
             return null;
         }
 
+        // Login User
         public async Task<string?> LoginUserAsync(LoginDto loginDto)
         {
             _logger.LogInformation("Attempting login for user: {UsernameOrEmail}.", loginDto.UserName ?? loginDto.Email);
 
-            ApplicationUser? user = null;
-            if (!string.IsNullOrEmpty(loginDto.UserName))
-                user = await _userManager.FindByNameAsync(loginDto.UserName);
-
-            if (user == null && !string.IsNullOrEmpty(loginDto.Email))
-                user = await _userManager.FindByEmailAsync(loginDto.Email);
+            var user = !string.IsNullOrEmpty(loginDto.UserName)
+                ? await _userManager.FindByNameAsync(loginDto.UserName)
+                : await _userManager.FindByEmailAsync(loginDto.Email);
 
             if (user == null)
             {
@@ -69,11 +76,9 @@ namespace Othello_API.Services
             return GenerateJwtToken(user);
         }
 
+        // Generate JWT Token
         private string GenerateJwtToken(ApplicationUser user)
         {
-            if (user == null)
-                throw new ArgumentNullException(nameof(user), "User object cannot be null.");
-
             _logger.LogInformation("Generating JWT token for user {UsernameOrEmail}.", user.UserName ?? user.Email);
 
             var secretKey = _config["JwtSettings:Secret"];
@@ -83,30 +88,7 @@ namespace Othello_API.Services
             if (string.IsNullOrEmpty(secretKey) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
                 throw new Exception("JWT configuration is missing! Check appsettings.json");
 
-            byte[] key;
-            if (secretKey.Length >= 44 && secretKey.EndsWith("="))
-            {
-                try
-                {
-                    key = Convert.FromBase64String(secretKey);
-                    _logger.LogInformation("Decoded Base64 JWT Secret. Key length: {Length} bytes.", key.Length);
-                }
-                catch (FormatException)
-                {
-                    _logger.LogWarning("JWT Secret was expected to be Base64 but failed decoding. Using as plain text.");
-                    key = Encoding.UTF8.GetBytes(secretKey);
-                }
-            }
-            else
-            {
-                _logger.LogInformation("Using plain text JWT Secret.");
-                key = Encoding.UTF8.GetBytes(secretKey);
-            }
-
-            if (key.Length < 32)
-            {
-                throw new InvalidOperationException($"JWT Secret key must be at least 32 bytes, but found {key.Length} bytes.");
-            }
+            byte[] key = Encoding.UTF8.GetBytes(secretKey);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -129,19 +111,97 @@ namespace Othello_API.Services
             return tokenHandler.WriteToken(token);
         }
 
-        public Task<List<ApplicationUser>> GetAllUsersAsync()
+        // Get All Users (Admin Only)
+        public async Task<List<ApplicationUser>> GetAllUsersAsync()
         {
-            throw new NotImplementedException();
+            return await _userManager.Users.ToListAsync();
         }
 
-        public Task<bool> UpdateUserAsync(string id, UpdateUserDto dto)
+        //  Update User
+        public async Task<bool> UpdateUserAsync(string id, UpdateUserDto dto)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found.", id);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(dto.UserName))
+                user.UserName = dto.UserName;
+
+            if (!string.IsNullOrEmpty(dto.Email))
+                user.Email = dto.Email;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Failed to update user {UserId}. Errors: {Errors}", id, string.Join(", ", result.Errors));
+                return false;
+            }
+
+            _logger.LogInformation("User {UserId} updated successfully.", id);
+            return true;
         }
 
-        public Task<bool> DeleteUserAsync(string id)
+        //  Delete User (Fix FOREIGN KEY issue)
+        public async Task<bool> DeleteUserAsync(string id)
         {
-            throw new NotImplementedException();
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                _logger.LogWarning("User {UserId} not found for deletion.", id);
+                return false;
+            }
+
+            //  Remove related UserGames
+            var userGames = await _dbContext.UserGames.Where(ug => ug.UserId == id).ToListAsync();
+            if (userGames.Any())
+            {
+                _dbContext.UserGames.RemoveRange(userGames);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            //  Remove LeaderBoard entry if exists
+            var leaderBoardEntry = await _dbContext.LeaderBoard.FirstOrDefaultAsync(lb => lb.PlayerId == id);
+            if (leaderBoardEntry != null)
+            {
+                _dbContext.LeaderBoard.Remove(leaderBoardEntry);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            //  Update Game table to NULL instead of deleting (to prevent FK issues)
+            var gamesWhereUserIsPlayer1 = await _dbContext.Games.Where(g => g.Player1Id == id).ToListAsync();
+            foreach (var game in gamesWhereUserIsPlayer1)
+            {
+                game.Player1Id = null;
+            }
+
+            var gamesWhereUserIsPlayer2 = await _dbContext.Games.Where(g => g.Player2Id == id).ToListAsync();
+            foreach (var game in gamesWhereUserIsPlayer2)
+            {
+                game.Player2Id = null;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            //  Remove user from roles
+            var roles = await _userManager.GetRolesAsync(user);
+            foreach (var role in roles)
+            {
+                await _userManager.RemoveFromRoleAsync(user, role);
+            }
+
+            //  Now delete the user
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Failed to delete user {UserId}. Errors: {Errors}", id, string.Join(", ", result.Errors));
+                return false;
+            }
+
+            _logger.LogInformation("User {UserId} deleted successfully.", id);
+            return true;
         }
     }
 }

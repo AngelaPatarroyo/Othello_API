@@ -28,8 +28,8 @@ jobs:
         run: |
           echo 'JwtSettings__Secret="${{ secrets.JWT_SECRET }}"' >> $GITHUB_ENV
           echo 'ConnectionStrings__DefaultConnection="${{ secrets.DB_CONNECTION }}"' >> $GITHUB_ENV
-          echo 'EmailSettings__SmtpUsername="${{ secrets.SMTPUSERNAME }}"' >> $GITHUB_ENV
-          echo 'EmailSettings__SmtpPassword="${{ secrets.SMTPPASSWORD }}"' >> $GITHUB_ENV
+          echo 'EmailSettings__SmtpUsername="${{ secrets.SMTP_USERNAME }}"' >> $GITHUB_ENV
+          echo 'EmailSettings__SmtpPassword="${{ secrets.SMTP_PASSWORD }}"' >> $GITHUB_ENV
 
       - name: Run tests
         run: dotnet test --no-build --configuration Release

@@ -32,6 +32,7 @@ if (string.IsNullOrEmpty(dbConnection))
 {
     throw new InvalidOperationException("Database connection string is missing. Set it as an environment variable.");
 }
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(dbConnection));
 
@@ -133,7 +134,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Othello_API", Version = "1.0" });
 
-    // 🔹 Add JWT authentication to Swagger
+    // 🔹Add JWT authentication to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer YOUR_TOKEN_HERE'",
@@ -155,11 +156,32 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
 builder.Services.AddScoped<EmailService>();
 
 // Build the application
 var app = builder.Build();
+
+// Apply Pending Migrations Automatically
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+
+    dbContext.Database.Migrate(); //  Ensure database is up to date
+
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    string[] roleNames = { "Admin", "Player" };
+
+    foreach (var roleName in roleNames)
+    {
+        var roleExists = await roleManager.RoleExistsAsync(roleName);
+        if (!roleExists)
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+            Console.WriteLine($"Role '{roleName}' created.");
+        }
+    }
+}
 
 // Configure middleware
 if (app.Environment.IsDevelopment())

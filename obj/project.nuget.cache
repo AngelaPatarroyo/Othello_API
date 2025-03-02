@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "X1pOc+m/I/M=",
+  "dgSpecHash": "8UR6kmLH7UQ=",
   "success": true,
   "projectFilePath": "/Users/angela/Desktop/Web Application/Othello_API/Othello_API.csproj",
   "expectedPackageFiles": [
+    "/Users/angela/.nuget/packages/dotenv.net/3.2.1/dotenv.net.3.2.1.nupkg.sha512",
     "/Users/angela/.nuget/packages/dotnetenv/3.1.1/dotnetenv.3.1.1.nupkg.sha512",
     "/Users/angela/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
     "/Users/angela/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/9.0.2/microsoft.aspnetcore.authentication.jwtbearer.9.0.2.nupkg.sha512",

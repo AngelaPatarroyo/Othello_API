@@ -1,3 +1,4 @@
+using DotNetEnv;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,12 +8,8 @@ using Othello_API.Services;
 using Othello_API.Repositories;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using DotNetEnv;
 
-
-
-
-Env.Load(); 
+Env.Load(); // Load .env file
 
 // Build Configuration
 var builder = WebApplication.CreateBuilder(args);
@@ -25,11 +22,12 @@ var config = new ConfigurationBuilder()
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .Build();
 
-// Add logging to the console
-builder.Logging.AddConsole();
+// Debugging: Print Environment Variables
+Console.WriteLine($"DATABASE_URL from env: {Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")}");
+Console.WriteLine($"JWT_SECRET from env: {Environment.GetEnvironmentVariable("JWT_SECRET")}");
 
 // Ensure the database connection is set
-var dbConnection = config.GetConnectionString("DefaultConnection");
+var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? config.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(dbConnection))
 {
     throw new InvalidOperationException("Database connection string is missing. Set it as an environment variable.");
@@ -44,11 +42,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 // Ensure JWT Secret is set
-var jwtSecret = config["JwtSettings:Secret"];
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? config["JwtSettings:Secret"];
+
 if (string.IsNullOrEmpty(jwtSecret))
 {
     throw new InvalidOperationException("JWT Secret is missing. Set it as an environment variable or in GitHub Secrets.");
 }
+
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

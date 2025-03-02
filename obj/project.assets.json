@@ -2,6 +2,15 @@
   "version": 3,
   "targets": {
     "net9.0": {
+      "dotenv.net/3.2.1": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.1/dotenv.net.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.1/dotenv.net.dll": {}
+        }
+      },
       "DotNetEnv/3.1.1": {
         "type": "package",
         "dependencies": {
@@ -2871,6 +2880,21 @@
     }
   },
   "libraries": {
+    "dotenv.net/3.2.1": {
+      "sha512": "2fc2s5PH6wAoWQ8bpyVgz28y9qMs/t8ToiCKqSM6mWpjgg4QQSPtZ0nia0x/OebGLSDbxyOelVH+fULZH7N4mA==",
+      "type": "package",
+      "path": "dotenv.net/3.2.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "dotenv.net.3.2.1.nupkg.sha512",
+        "dotenv.net.nuspec",
+        "lib/netstandard1.6/dotenv.net.dll",
+        "lib/netstandard2.0/dotenv.net.dll",
+        "lib/netstandard2.1/dotenv.net.dll"
+      ]
+    },
     "DotNetEnv/3.1.1": {
       "sha512": "o4SqUVCq0pqHF/HYsZk6k22XGIVmvsDVo+Dy7l0ubq9uQ45JkXswrMRJmYvhGLXWFYF0M5OupMonytB+0zvpGQ==",
       "type": "package",
@@ -8914,7 +8938,8 @@
       "Microsoft.EntityFrameworkCore >= 9.0.2",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.2",
       "Microsoft.EntityFrameworkCore.Sqlite >= 9.0.2",
-      "Swashbuckle.AspNetCore >= 7.3.0"
+      "Swashbuckle.AspNetCore >= 7.3.0",
+      "dotenv.net >= 3.2.1"
     ]
   },
   "packageFolders": {
@@ -8998,6 +9023,10 @@
           "Swashbuckle.AspNetCore": {
             "target": "Package",
             "version": "[7.3.0, )"
+          },
+          "dotenv.net": {
+            "target": "Package",
+            "version": "[3.2.1, )"
           }
         },
         "imports": [

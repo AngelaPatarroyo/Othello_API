@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Othello_API.DTOs;
-
-
+using Othello_API.Models;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -22,7 +21,7 @@ public class UserGameController : ControllerBase
     [Produces("application/json")]
     public async Task<IActionResult> GetUserGames()
     {
-        _logger.LogInformation("Fetching all user games from the database.");
+        _logger.LogInformation("Fetching all user-game relationships.");
 
         var userGames = await _context.UserGames
             .Select(ug => new
@@ -35,12 +34,11 @@ public class UserGameController : ControllerBase
 
         if (!userGames.Any())
         {
-            _logger.LogWarning("No user games found.");
+            _logger.LogWarning("No user-game relationships found.");
             return NotFound("No user games found.");
         }
 
-        _logger.LogInformation("Successfully fetched {UserGameCount} user games.", userGames.Count);
-
+        _logger.LogInformation("Successfully retrieved {UserGameCount} user-game relationships.", userGames.Count);
         return Ok(userGames);
     }
 
@@ -48,7 +46,7 @@ public class UserGameController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserGameById(int id)
     {
-        _logger.LogInformation("Fetching user game with ID {UserGameId}.", id);
+        _logger.LogInformation("Fetching user-game relationship with ID {UserGameId}.", id);
 
         var userGame = await _context.UserGames
             .Where(ug => ug.UserGameId == id)
@@ -66,8 +64,7 @@ public class UserGameController : ControllerBase
             return NotFound("User game not found.");
         }
 
-        _logger.LogInformation("Successfully fetched user game with ID {UserGameId}.", id);
-
+        _logger.LogInformation("Successfully retrieved user-game relationship with ID {UserGameId}.", id);
         return Ok(userGame);
     }
 
@@ -75,10 +72,10 @@ public class UserGameController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUserGame([FromBody] UserGameDto userGameDto)
     {
-        if (userGameDto == null || string.IsNullOrEmpty(userGameDto.UserId) || userGameDto.GameId == 0)
+        if (!ModelState.IsValid)
         {
-            _logger.LogWarning("UserId or GameId is missing in the request.");
-            return BadRequest("UserId and GameId are required.");
+            _logger.LogWarning("Invalid UserGameDto request received.");
+            return BadRequest(ModelState);
         }
 
         _logger.LogInformation("Attempting to create a new UserGame for UserId: {UserId}, GameId: {GameId}.", userGameDto.UserId, userGameDto.GameId);
@@ -114,16 +111,15 @@ public class UserGameController : ControllerBase
         {
             UserId = userGameDto.UserId,
             GameId = userGameDto.GameId,
-            TotalWins = userGameDto.TotalWins ?? 0,
-            TotalLosses = userGameDto.TotalLosses ?? 0,
-            TotalGames = userGameDto.TotalGames ?? 0
+            TotalWins = userGameDto.TotalWins,
+            TotalLosses = userGameDto.TotalLosses,
+            TotalGames = userGameDto.TotalGames
         };
 
         _context.UserGames.Add(newUserGame);
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("UserGame created successfully with ID {UserGameId}.", newUserGame.UserGameId);
-
         return CreatedAtAction(nameof(GetUserGameById), new { id = newUserGame.UserGameId }, newUserGame);
     }
 
@@ -140,11 +136,18 @@ public class UserGameController : ControllerBase
             return NotFound("User game not found.");
         }
 
-        _context.UserGames.Remove(userGame);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.UserGames.Remove(userGame);
+            await _context.SaveChangesAsync();
 
-        _logger.LogInformation("UserGame with ID {UserGameId} deleted successfully.", id);
-
-        return NoContent();
+            _logger.LogInformation("UserGame with ID {UserGameId} deleted successfully.", id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting UserGame with ID {UserGameId}.", id);
+            return StatusCode(500, "An internal server error occurred.");
+        }
     }
 }

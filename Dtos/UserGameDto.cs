@@ -5,6 +5,7 @@ namespace Othello_API.DTOs
     public class UserGameDto
     {
         [Required(ErrorMessage = "UserId is required.")]
+        [MinLength(1, ErrorMessage = "UserId cannot be empty.")]
         public required string UserId { get; set; }
 
         [Required(ErrorMessage = "GameId is required.")]
@@ -12,12 +13,12 @@ namespace Othello_API.DTOs
         public int GameId { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "TotalWins cannot be negative.")]
-        public int? TotalWins { get; set; } = 0;
+        public int TotalWins { get; set; } = 0;
 
         [Range(0, int.MaxValue, ErrorMessage = "TotalLosses cannot be negative.")]
-        public int? TotalLosses { get; set; } = 0;
+        public int TotalLosses { get; set; } = 0;
 
         [Range(0, int.MaxValue, ErrorMessage = "TotalGames cannot be negative.")]
-        public int? TotalGames { get; set; } = 0;
+        public int TotalGames { get; set; } = 0;
     }
 }

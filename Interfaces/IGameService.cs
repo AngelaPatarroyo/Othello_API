@@ -9,4 +9,5 @@ public interface IGameService
     Task<List<Game>> GetAllGamesAsync();
     Task<bool> UpdateGameAsync(int gameId, UpdateGameDto dto);
     Task<bool> DeleteGameAsync(int gameId);
+    void GetGameById(int gameId);
 }

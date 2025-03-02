@@ -74,9 +74,7 @@ public class GameService : IGameService
         return game;
     }
 
-    /// <summary>
-    /// Retrieves a game by its ID.
-    /// </summary>
+  
     public async Task<Game?> GetGameByIdAsync(int gameId)
     {
         _logger.LogInformation("Fetching game with ID {GameId}.", gameId);
@@ -161,5 +159,10 @@ public class GameService : IGameService
         }
 
         return success;
+    }
+
+    public void GetGameById(int gameId)
+    {
+        throw new NotImplementedException();
     }
 }

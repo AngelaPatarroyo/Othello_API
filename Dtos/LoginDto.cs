@@ -4,12 +4,20 @@ namespace Othello_API.Dtos
 {
     public class LoginDto
     {
-        [Required]
-        public string Email { get; set; } = string.Empty;   // Required: Must be provided for login
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        public string Email { get; set; } = string.Empty;   // Enforces a valid email format
 
-        public string? UserName { get; set; }  // Optional: Allow login with either username or email
+        public string? UserName { get; set; }  // Optional: Allow login with username
 
-        [Required]
-        public string Password { get; set; } = string.Empty;  // Required: Must be provided for login
+        [Required(ErrorMessage = "Password is required.")]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters long.")]
+        public string Password { get; set; } = string.Empty;  // Enforces minimum password length
+
+        // Custom validation: Ensure either Email or UserName is provided
+        public bool IsValid()
+        {
+            return !string.IsNullOrEmpty(Email) || !string.IsNullOrEmpty(UserName);
+        }
     }
 }

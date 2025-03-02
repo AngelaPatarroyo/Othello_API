@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Othello_API.Dtos;
 using Othello_API.Interfaces;
 
-
 [Route("api/[controller]")]
 [ApiController]
 public class UserController : ControllerBase
@@ -20,7 +19,12 @@ public class UserController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        // Handle null UserName case gracefully
+        if (registerDto == null || !ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid registration attempt: request body is missing or malformed.");
+            return BadRequest(new { message = "Invalid registration request" });
+        }
+
         var userNameToLog = string.IsNullOrEmpty(registerDto.UserName) ? "No username provided" : registerDto.UserName;
         _logger.LogInformation("Attempting to register a new user with username {Username}.", userNameToLog);
 
@@ -40,7 +44,12 @@ public class UserController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        // Fallback to email if UserName is not provided
+        if (loginDto == null || !ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid login attempt: request body is missing or malformed.");
+            return BadRequest(new { message = "Invalid login credentials" });
+        }
+
         var usernameOrEmail = !string.IsNullOrEmpty(loginDto.UserName) ? loginDto.UserName : loginDto.Email;
         _logger.LogInformation("User {Username} attempting to log in.", usernameOrEmail);
 
@@ -56,21 +65,35 @@ public class UserController : ControllerBase
         return Ok(new { token });
     }
 
-    // GET: api/User
+    // GET: api/User?page=1&pageSize=10
     [HttpGet]
     public async Task<IActionResult> GetAllUsers()
     {
         _logger.LogInformation("Fetching all users.");
 
         var users = await _userService.GetAllUsersAsync();
+
+        if (users == null || users.Count == 0)
+        {
+            _logger.LogWarning("No users found in the database.");
+            return NotFound("No users available.");
+        }
+
         return Ok(users.Select(user => new { user.Id, user.UserName, user.Email }));
     }
+
 
     // PUT: api/User/{id}
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
     {
         _logger.LogInformation("Attempting to update user with ID {UserId}.", id);
+
+        if (dto == null || !dto.IsValid())
+        {
+            _logger.LogWarning("Invalid update request for user with ID {UserId}.", id);
+            return BadRequest("Update request is empty or invalid.");
+        }
 
         var success = await _userService.UpdateUserAsync(id, dto);
         if (!success)

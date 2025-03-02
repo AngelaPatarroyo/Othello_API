@@ -7,25 +7,35 @@ using Othello_API.Services;
 using Othello_API.Repositories;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using DotNetEnv;
 
+
+
+
+Env.Load(); 
 
 // Build Configuration
 var builder = WebApplication.CreateBuilder(args);
 
-// Explicitly load configuration
+// Explicitly load configuration (Environment Variables FIRST)
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
+    .AddEnvironmentVariables() // 🔹 Load Environment Variables FIRST
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables()
     .Build();
 
 // Add logging to the console
 builder.Logging.AddConsole();
 
-// Add database connection (SQLite)
+// Ensure the database connection is set
+var dbConnection = config.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(dbConnection))
+{
+    throw new InvalidOperationException("Database connection string is missing. Set it as an environment variable.");
+}
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(config.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(dbConnection));
 
 // Register Identity for authentication & role management
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -33,8 +43,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-
-var key = Encoding.UTF8.GetBytes(config["JwtSettings:Secret"] ?? throw new InvalidOperationException("JWT Secret is missing"));
+// Ensure JWT Secret is set
+var jwtSecret = config["JwtSettings:Secret"];
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    throw new InvalidOperationException("JWT Secret is missing. Set it as an environment variable or in GitHub Secrets.");
+}
+var key = Encoding.UTF8.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -61,13 +76,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("PlayerOnly", policy => policy.RequireRole("Player"));
 });
 
-// Enable CORS for frontend access
+// Secure CORS Policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        policy => policy.AllowAnyOrigin()
+    options.AddPolicy("AllowFrontend",
+        policy => policy.WithOrigins("https://your-frontend-domain.com", "http://localhost:3000") 
                         .AllowAnyMethod()
-                        .AllowAnyHeader());
+                        .WithHeaders("Authorization", "Content-Type"));
 });
 
 // Add JSON options to handle object cycles
@@ -84,54 +99,28 @@ builder.Services.AddScoped<IMoveService, MoveService>();
 builder.Services.AddScoped<ILeaderBoardService, LeaderBoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserGameService, UserGameService>();
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 
-// Add API exploration and Swagger for documentation
+// Add API documentation (Swagger)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Othello API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer"
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            new string[] {}
-        }
-    });
-});
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddScoped<EmailService>();
+
 // Build the application
 var app = builder.Build();
 
-// Configure middleware pipeline
+// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll"); // Enable CORS
-app.UseAuthentication(); // Enable JWT Authentication
-app.UseAuthorization();  // Enable Authorization Middleware
-
+app.UseCors("AllowFrontend");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
-
-foreach (var kvp in config.AsEnumerable())
-{
-    Console.WriteLine($"Config Key: {kvp.Key} - Value: {kvp.Value}");
-}

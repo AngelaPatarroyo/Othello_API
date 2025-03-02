@@ -105,6 +105,7 @@ public class UserController : ControllerBase
     }
 
     // AUTHORIZED USERS & ADMINS - Update User Profile
+    // AUTHORIZED USERS & ADMINS - Update User Profile
     [HttpPut("{id}")]
     [Authorize] // Only logged-in users can update
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
@@ -114,18 +115,27 @@ public class UserController : ControllerBase
 
         _logger.LogInformation("Attempting to update user with ID {UserId}.", id);
 
-        if (dto == null || !dto.IsValid())
+        if (dto == null || !ModelState.IsValid)
         {
             _logger.LogWarning("Invalid update request.");
             return BadRequest("Update request is empty or invalid.");
         }
 
-        // If Admin, they can update any user
-        // If Normal User, they can only update their own profile
+        // 🔹 If NOT an Admin, only allow updating own profile
         if (loggedInUserId != id && loggedInUserRole != "Admin")
         {
+            _logger.LogWarning("User {UserId} attempted to update another user's profile.", loggedInUserId);
             return Forbid("You can only update your own profile.");
         }
+
+        // 🔹 Restrict updates to only email, password, and username
+        dto.RestrictUpdates();
+
+        if (!dto.IsValid())
+        {
+            return BadRequest("At least one field (UserName, Email, or NewPassword) must be provided.");
+        }
+
 
         var success = await _userService.UpdateUserAsync(id, dto);
         if (!success)
@@ -137,6 +147,7 @@ public class UserController : ControllerBase
         _logger.LogInformation("User updated successfully.");
         return Ok("User updated successfully");
     }
+
 
     // ADMIN ONLY - Delete Any User
     [HttpDelete("{id}")]

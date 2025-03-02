@@ -127,22 +127,56 @@ namespace Othello_API.Services
                 return false;
             }
 
-            if (!string.IsNullOrEmpty(dto.UserName))
-                user.UserName = dto.UserName;
+            bool isUpdated = false;
 
-            if (!string.IsNullOrEmpty(dto.Email))
-                user.Email = dto.Email;
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
+            if (!string.IsNullOrWhiteSpace(dto.UserName))
             {
-                _logger.LogWarning("Failed to update user {UserId}. Errors: {Errors}", id, string.Join(", ", result.Errors));
-                return false;
+                user.UserName = dto.UserName;
+                isUpdated = true;
             }
 
-            _logger.LogInformation("User {UserId} updated successfully.", id);
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                user.Email = dto.Email;
+                user.NormalizedEmail = _userManager.NormalizeEmail(dto.Email);
+                isUpdated = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var passwordResult = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
+
+                if (!passwordResult.Succeeded)
+                {
+                    _logger.LogWarning("Failed to update password for user {UserId}. Errors: {Errors}", id,
+                        string.Join(", ", passwordResult.Errors.Select(e => e.Description)));
+                    return false;
+                }
+
+                isUpdated = true;
+            }
+
+            if (isUpdated)
+            {
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    _logger.LogWarning("Failed to update user {UserId}. Errors: {Errors}", id,
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                    return false;
+                }
+
+                _logger.LogInformation("User {UserId} updated successfully.", id);
+            }
+            else
+            {
+                _logger.LogWarning("No updates were provided for user {UserId}.", id);
+            }
+
             return true;
         }
+
 
         //  Delete User (Fix FOREIGN KEY issue)
         public async Task<bool> DeleteUserAsync(string id)

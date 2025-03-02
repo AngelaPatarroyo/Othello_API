@@ -173,3 +173,5 @@
 /Users/angela/Desktop/Web Application/Othello_API/bin/Debug/net9.0/DotNetEnv.dll
 /Users/angela/Desktop/Web Application/Othello_API/bin/Debug/net9.0/Sprache.dll
 /Users/angela/Desktop/Web Application/Othello_API/bin/Debug/net9.0/dotenv.net.dll
+/Users/angela/Desktop/Web Application/Othello_API/bin/Debug/net9.0/AspNetCoreRateLimit.dll
+/Users/angela/Desktop/Web Application/Othello_API/bin/Debug/net9.0/Newtonsoft.Json.dll

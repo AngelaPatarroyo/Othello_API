@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Othello_API.DTOs;
-
+using Othello_API.Interfaces;
+using Othello_API.Models;
+using System.Threading.Tasks;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize(Roles = "Admin")] //  Restrict all endpoints to Admin users
 public class GameController : ControllerBase
 {
     private readonly IGameService _gameService;
@@ -22,7 +26,7 @@ public class GameController : ControllerBase
     [HttpPost("start")]
     public async Task<IActionResult> StartGame([FromBody] StartGameDto gameDto)
     {
-        _logger.LogInformation("Received request to start a new game with Player1: {Player1Id}, Player2: {Player2Id}.", gameDto.Player1Id, gameDto.Player2Id);
+        _logger.LogInformation("Admin is starting a new game with Player1: {Player1Id}, Player2: {Player2Id}.", gameDto.Player1Id, gameDto.Player2Id);
 
         if (!ModelState.IsValid)
         {
@@ -33,11 +37,10 @@ public class GameController : ControllerBase
         var game = await _gameService.CreateGameAsync(gameDto);
         if (game == null)
         {
-            _logger.LogError("Failed to create a new game.");
+            _logger.LogError("Game creation failed.");
             return BadRequest("Game could not be created.");
         }
 
-        // Ensure Player1 and Player2 are fully loaded
         game = await _context.Games
             .Include(g => g.Player1)
             .Include(g => g.Player2)
@@ -51,129 +54,110 @@ public class GameController : ControllerBase
 
         _logger.LogInformation("Game {GameId} successfully started.", game.GameId);
 
-        var response = new
+        return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, new
         {
-            gameId = game.GameId,
-            gameStatus = game.GameStatus,
-            createdAt = game.CreatedAt,
-            player1 = new
-            {
-                id = game.Player1Id,
-                userName = game.Player1?.UserName,
-                email = game.Player1?.Email
-            },
-            player2 = new
-            {
-                id = game.Player2Id,
-                userName = game.Player2?.UserName,
-                email = game.Player2?.Email
-            }
-        };
-
-        return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, response);
+            game.GameId,
+            game.GameStatus,
+            game.CreatedAt,
+            Player1 = new { game.Player1Id, game.Player1?.UserName, game.Player1?.Email },
+            Player2 = new { game.Player2Id, game.Player2?.UserName, game.Player2?.Email }
+        });
     }
 
     // Get a single game by gameId
     [HttpGet("{gameId}")]
     public async Task<IActionResult> GetGame(int gameId)
     {
-        _logger.LogInformation("Fetching game details for GameId: {GameId}.", gameId);
+        _logger.LogInformation("Admin is retrieving details for GameId: {GameId}.", gameId);
 
         var game = await _context.Games
-            .Include(g => g.Player1)
-            .Include(g => g.Player2)
-            .Include(g => g.Winner)
+            .Include(g => g.Player1)  // Ensure Player1 is loaded
+            .Include(g => g.Player2)  // Ensure Player2 is loaded
+            .Include(g => g.Winner)   // Ensure Winner is loaded
             .FirstOrDefaultAsync(g => g.GameId == gameId);
 
         if (game == null)
         {
             _logger.LogWarning("Game with ID {GameId} not found.", gameId);
-            return NotFound("Game not found.");
+            return NotFound(new { message = "Game not found." });
         }
 
         _logger.LogInformation("Game {GameId} retrieved successfully.", gameId);
 
-        var response = new
+        return Ok(new
         {
-            gameId = game.GameId,
-            gameStatus = game.GameStatus,
-            createdAt = game.CreatedAt,
-            player1 = new
+            game.GameId,
+            game.GameStatus,
+            game.CreatedAt,
+            Player1 = game.Player1 != null ? new
             {
                 id = game.Player1Id,
-                userName = game.Player1?.UserName,
-                email = game.Player1?.Email
-            },
-            player2 = new
+                userName = game.Player1.UserName ?? "Unknown",
+                email = game.Player1.Email ?? "No Email"
+            } : null,
+
+            Player2 = game.Player2 != null ? new
             {
                 id = game.Player2Id,
-                userName = game.Player2?.UserName,
-                email = game.Player2?.Email
-            },
-            winner = game.Winner != null ? new
+                userName = game.Player2.UserName ?? "Unknown",
+                email = game.Player2.Email ?? "No Email"
+            } : null,
+
+            Winner = game.Winner != null ? new
             {
                 id = game.Winner.Id,
-                userName = game.Winner.UserName,
-                email = game.Winner.Email
+                userName = game.Winner.UserName ?? "Unknown",
+                email = game.Winner.Email ?? "No Email"
             } : null
-        };
-
-        return Ok(response);
+        });
     }
+
 
     // Get all games
     [HttpGet]
-    public async Task<IActionResult> GetAllGames()
+    public async Task<IActionResult> GetAllGames([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        _logger.LogInformation("Fetching all games.");
+        _logger.LogInformation("Fetching all games with pagination (Page: {Page}, PageSize: {PageSize})", page, pageSize);
 
-        var games = await _context.Games
+        // Ensure page size is reasonable (prevent abuse)
+        pageSize = Math.Clamp(pageSize, 1, 50); // Limit page size between 1 and 50
+
+        var query = _context.Games
             .Include(g => g.Player1)
             .Include(g => g.Player2)
-            .Include(g => g.Winner)
+            .Include(g => g.Winner);
+
+        var totalGames = await query.CountAsync(); // Get total number of games
+
+        var games = await query
+            .OrderByDescending(g => g.CreatedAt) // Sort by newest games first
+            .Skip((page - 1) * pageSize) // Skip previous pages
+            .Take(pageSize) // Limit results to pageSize
             .ToListAsync();
 
-        if (games.Count == 0)
+        return Ok(new
         {
-            _logger.LogWarning("No games found in the database.");
-            return NotFound("No games available.");
-        }
-
-        _logger.LogInformation("Successfully retrieved {Count} games.", games.Count);
-
-        var response = games.Select(game => new
-        {
-            gameId = game.GameId,
-            gameStatus = game.GameStatus,
-            createdAt = game.CreatedAt,
-            player1 = new
+            totalGames,
+            totalPages = (int)Math.Ceiling((double)totalGames / pageSize),
+            currentPage = page,
+            pageSize,
+            games = games.Select(game => new
             {
-                id = game.Player1Id,
-                userName = game.Player1?.UserName,
-                email = game.Player1?.Email
-            },
-            player2 = new
-            {
-                id = game.Player2Id,
-                userName = game.Player2?.UserName,
-                email = game.Player2?.Email
-            },
-            winner = game.Winner != null ? new
-            {
-                id = game.Winner.Id,
-                userName = game.Winner.UserName,
-                email = game.Winner.Email
-            } : null
+                gameId = game.GameId,
+                gameStatus = game.GameStatus,
+                createdAt = game.CreatedAt,
+                player1 = new { id = game.Player1Id, userName = game.Player1?.UserName },
+                player2 = new { id = game.Player2Id, userName = game.Player2?.UserName },
+                winner = game.Winner != null ? new { id = game.Winner.Id, userName = game.Winner.UserName } : null
+            })
         });
-
-        return Ok(response);
     }
 
     // Update game details
     [HttpPut("{gameId}")]
     public async Task<IActionResult> UpdateGame(int gameId, [FromBody] UpdateGameDto dto)
     {
-        _logger.LogInformation("Received request to update Game {GameId}.", gameId);
+        _logger.LogInformation("Admin is updating Game {GameId}.", gameId);
 
         if (!ModelState.IsValid)
         {
@@ -196,7 +180,7 @@ public class GameController : ControllerBase
     [HttpDelete("{gameId}")]
     public async Task<IActionResult> DeleteGame(int gameId)
     {
-        _logger.LogInformation("Received request to delete Game {GameId}.", gameId);
+        _logger.LogInformation("Admin is deleting Game {GameId}.", gameId);
 
         var success = await _gameService.DeleteGameAsync(gameId);
         if (!success)

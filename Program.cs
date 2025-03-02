@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using AspNetCoreRateLimit;
 using Othello_API.Interfaces;
 using Othello_API.Services;
 using Othello_API.Repositories;
@@ -11,71 +12,36 @@ using System.Text;
 
 Env.Load(); // Load .env file
 
-// Build Configuration
 var builder = WebApplication.CreateBuilder(args);
 
-// Explicitly load configuration (Environment Variables FIRST)
+// Load Configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
-    .AddEnvironmentVariables() // Load Environment Variables FIRST
+    .AddEnvironmentVariables()
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .Build();
 
-// Debugging: Print Environment Variables
-Console.WriteLine($"DATABASE_URL from env: {Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")}");
-Console.WriteLine($"JWT_SECRET from env: {Environment.GetEnvironmentVariable("JWT_SECRET")}");
-
-// Ensure the database connection is set
+// Database Connection
 var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? config.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(dbConnection))
-{
-    throw new InvalidOperationException("Database connection string is missing. Set it as an environment variable.");
-}
+    throw new InvalidOperationException("Database connection string is missing.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(dbConnection));
 
-// Register Identity for authentication & role management
+// Identity & Authentication
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Ensure JWT Secret is set
+// JWT Authentication
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? config["JwtSettings:Secret"];
-
 if (string.IsNullOrEmpty(jwtSecret))
-{
-    throw new InvalidOperationException("JWT Secret is missing. Set it as an environment variable or in GitHub Secrets.");
-}
+    throw new InvalidOperationException("JWT Secret is missing.");
 
-// Handle JWT Secret Key properly
-byte[] key;
-if (jwtSecret.Length >= 44 && jwtSecret.EndsWith("="))
-{
-    try
-    {
-        key = Convert.FromBase64String(jwtSecret);
-        Console.WriteLine($"Decoded Base64 JWT Secret. Key length: {key.Length} bytes.");
-    }
-    catch (FormatException)
-    {
-        Console.WriteLine("JWT Secret was expected to be Base64 but failed decoding. Using as plain text.");
-        key = Encoding.UTF8.GetBytes(jwtSecret);
-    }
-}
-else
-{
-    Console.WriteLine("Using plain text JWT Secret.");
-    key = Encoding.UTF8.GetBytes(jwtSecret);
-}
-
-if (key.Length < 32)
-{
-    throw new InvalidOperationException($"JWT Secret key must be at least 32 bytes, but found {key.Length} bytes.");
-}
-
+byte[] key = Encoding.UTF8.GetBytes(jwtSecret);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -94,14 +60,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Add Authorization Policies
+// Authorization Policies
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     options.AddPolicy("PlayerOnly", policy => policy.RequireRole("Player"));
 });
 
-// Secure CORS Policy
+// CORS Policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
@@ -110,7 +76,26 @@ builder.Services.AddCors(options =>
                         .WithHeaders("Authorization", "Content-Type"));
 });
 
-// Add JSON options to handle object cycles
+// Add Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    options.GeneralRules = new List<RateLimitRule>
+    {
+        new RateLimitRule
+        {
+            Endpoint = "*",
+            Limit = 100,  // Max 100 requests
+            Period = "1m" // Per minute
+        }
+    };
+});
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+
+// JSON Configuration
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -118,7 +103,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-// Register services and repositories (Dependency Injection)
+// Services & Repositories
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IMoveService, MoveService>();
 builder.Services.AddScoped<ILeaderBoardService, LeaderBoardService>();
@@ -128,13 +113,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 
-// Add API documentation (Swagger)
+// API Documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Othello_API", Version = "1.0" });
-
-    // 🔹Add JWT authentication to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer YOUR_TOKEN_HERE'",
@@ -158,7 +141,7 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddScoped<EmailService>();
 
-// Build the application
+// Build & Run Application
 var app = builder.Build();
 
 // Apply Pending Migrations Automatically
@@ -167,7 +150,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
-    dbContext.Database.Migrate(); //  Ensure database is up to date
+    dbContext.Database.Migrate(); // Ensure database is up to date
 
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     string[] roleNames = { "Admin", "Player" };
@@ -183,15 +166,18 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure middleware
+// Apply Security Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+//app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseIpRateLimiting();
 app.UseAuthentication();
+app.UseMiddleware<Othello_API.Middleware.ErrorHandlingMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

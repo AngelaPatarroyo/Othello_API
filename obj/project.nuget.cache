@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "8UR6kmLH7UQ=",
+  "dgSpecHash": "MBOQgNJVAA0=",
   "success": true,
   "projectFilePath": "/Users/angela/Desktop/Web Application/Othello_API/Othello_API.csproj",
   "expectedPackageFiles": [
+    "/Users/angela/.nuget/packages/aspnetcoreratelimit/5.0.0/aspnetcoreratelimit.5.0.0.nupkg.sha512",
     "/Users/angela/.nuget/packages/dotenv.net/3.2.1/dotenv.net.3.2.1.nupkg.sha512",
     "/Users/angela/.nuget/packages/dotnetenv/3.1.1/dotnetenv.3.1.1.nupkg.sha512",
     "/Users/angela/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
@@ -61,6 +62,7 @@
     "/Users/angela/.nuget/packages/microsoft.win32.primitives/4.3.0/microsoft.win32.primitives.4.3.0.nupkg.sha512",
     "/Users/angela/.nuget/packages/mono.texttemplating/3.0.0/mono.texttemplating.3.0.0.nupkg.sha512",
     "/Users/angela/.nuget/packages/netstandard.library/1.6.1/netstandard.library.1.6.1.nupkg.sha512",
+    "/Users/angela/.nuget/packages/newtonsoft.json/13.0.2/newtonsoft.json.13.0.2.nupkg.sha512",
     "/Users/angela/.nuget/packages/runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",
     "/Users/angela/.nuget/packages/runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",
     "/Users/angela/.nuget/packages/runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",

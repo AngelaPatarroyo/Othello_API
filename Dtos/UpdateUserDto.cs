@@ -16,9 +16,18 @@ namespace Othello_API.Dtos
         // Ensure at least one field is provided
         public bool IsValid()
         {
-            return !string.IsNullOrEmpty(UserName) ||
-                   !string.IsNullOrEmpty(Email) ||
-                   !string.IsNullOrEmpty(NewPassword);
+            return !string.IsNullOrWhiteSpace(UserName) ||
+                   !string.IsNullOrWhiteSpace(Email) ||
+                   !string.IsNullOrWhiteSpace(NewPassword);
+        }
+
+        // Restrict updates to only allowed fields
+        public void RestrictUpdates()
+        {
+            UserName = string.IsNullOrWhiteSpace(UserName) ? null : UserName.Trim();
+            Email = string.IsNullOrWhiteSpace(Email) ? null : Email.Trim();
+            NewPassword = string.IsNullOrWhiteSpace(NewPassword) ? null : NewPassword.Trim();
         }
     }
 }
+

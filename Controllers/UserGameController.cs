@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Othello_API.DTOs;
@@ -120,14 +121,24 @@ public class UserGameController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("UserGame created successfully with ID {UserGameId}.", newUserGame.UserGameId);
-        return CreatedAtAction(nameof(GetUserGameById), new { id = newUserGame.UserGameId }, newUserGame);
+        return CreatedAtAction(nameof(GetUserGameById), new { id = newUserGame.UserGameId }, new
+        {
+            newUserGame.UserGameId,
+            newUserGame.UserId,
+            newUserGame.GameId,
+            newUserGame.TotalWins,
+            newUserGame.TotalLosses,
+            newUserGame.TotalGames
+        });
+
     }
 
     // DELETE: api/UserGame/{id}
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")] // Restrict to Admins only
     public async Task<IActionResult> DeleteUserGame(int id)
     {
-        _logger.LogInformation("Attempting to delete UserGame with ID {UserGameId}.", id);
+        _logger.LogInformation("Admin attempting to delete UserGame with ID {UserGameId}.", id);
 
         var userGame = await _context.UserGames.FindAsync(id);
         if (userGame == null)
@@ -150,4 +161,5 @@ public class UserGameController : ControllerBase
             return StatusCode(500, "An internal server error occurred.");
         }
     }
+
 }

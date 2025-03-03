@@ -23,7 +23,7 @@ namespace Othello_API.Services
             SignInManager<ApplicationUser> signInManager,
             IConfiguration config,
             ILogger<UserService> logger,
-            ApplicationDbContext dbContext)  // Inject _dbContext
+            ApplicationDbContext dbContext)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -32,7 +32,7 @@ namespace Othello_API.Services
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
-        //  Register User
+        // Register User
         public async Task<ApplicationUser?> RegisterUserAsync(RegisterDto registerDto)
         {
             _logger.LogInformation("Registering user: {Username}, Email: {Email}", registerDto.UserName, registerDto.Email);
@@ -117,7 +117,7 @@ namespace Othello_API.Services
             return await _userManager.Users.ToListAsync();
         }
 
-        //  Update User
+        // Update User
         public async Task<bool> UpdateUserAsync(string id, UpdateUserDto dto)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -177,8 +177,7 @@ namespace Othello_API.Services
             return true;
         }
 
-
-        //  Delete User (Fix FOREIGN KEY issue)
+        // Delete User (Fix FOREIGN KEY issue)
         public async Task<bool> DeleteUserAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -188,7 +187,7 @@ namespace Othello_API.Services
                 return false;
             }
 
-            //  Remove related UserGames
+            // Remove related UserGames
             var userGames = await _dbContext.UserGames.Where(ug => ug.UserId == id).ToListAsync();
             if (userGames.Any())
             {
@@ -196,7 +195,7 @@ namespace Othello_API.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            //  Remove LeaderBoard entry if exists
+            // Remove LeaderBoard entry if exists
             var leaderBoardEntry = await _dbContext.LeaderBoard.FirstOrDefaultAsync(lb => lb.PlayerId == id);
             if (leaderBoardEntry != null)
             {
@@ -204,7 +203,7 @@ namespace Othello_API.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            //  Update Game table to NULL instead of deleting (to prevent FK issues)
+            // Update Game table to NULL instead of deleting (to prevent FK issues)
             var gamesWhereUserIsPlayer1 = await _dbContext.Games.Where(g => g.Player1Id == id).ToListAsync();
             foreach (var game in gamesWhereUserIsPlayer1)
             {
@@ -219,14 +218,14 @@ namespace Othello_API.Services
 
             await _dbContext.SaveChangesAsync();
 
-            //  Remove user from roles
+            // Remove user from roles
             var roles = await _userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {
                 await _userManager.RemoveFromRoleAsync(user, role);
             }
 
-            //  Now delete the user
+            // Now delete the user
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {

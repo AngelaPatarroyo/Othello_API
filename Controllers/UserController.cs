@@ -6,6 +6,7 @@ using Othello_API.Interfaces;
 using System.Security.Claims;
 using System.Linq;
 using System.Threading.Tasks;
+using Swashbuckle.AspNetCore.Annotations;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -22,8 +23,16 @@ public class UserController : ControllerBase
         _logger = logger;
     }
 
-    // OPEN TO ALL - User Registration
+    /// <summary>
+    /// Registers a new user.
+    /// </summary>
+    /// <param name="registerDto">User registration details.</param>
+    /// <returns>Returns success message with user details.</returns>
     [HttpPost("register")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Register a new user", Description = "Creates a new user account.")]
+    [SwaggerResponse(200, "User registered successfully", typeof(RegisterDto))]
+    [SwaggerResponse(400, "Invalid registration request")]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
         if (registerDto == null || !ModelState.IsValid)
@@ -44,8 +53,16 @@ public class UserController : ControllerBase
         return Ok(new { message = "User registered successfully", user.Id, user.UserName, user.Email });
     }
 
-    // OPEN TO ALL - User Login
+    /// <summary>
+    /// Authenticates and logs in a user.
+    /// </summary>
+    /// <param name="loginDto">User login credentials.</param>
+    /// <returns>Returns a JWT token if successful.</returns>
     [HttpPost("login")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Login a user", Description = "Authenticates a user and returns a JWT token.")]
+    [SwaggerResponse(200, "Login successful", typeof(string))]
+    [SwaggerResponse(401, "Invalid login credentials")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
         if (loginDto == null || !ModelState.IsValid)
@@ -66,9 +83,17 @@ public class UserController : ControllerBase
         return Ok(new { token });
     }
 
-    // ADMIN ONLY - Assign Role to a User
+    /// <summary>
+    /// Assigns a role to a user (Admin only).
+    /// </summary>
+    /// <param name="request">The role assignment details.</param>
+    /// <returns>Returns success message.</returns>
     [HttpPost("assign-role")]
     [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Assign role to user (Admin only)", Description = "Assigns a specified role to a user.")]
+    [SwaggerResponse(200, "Role assigned successfully")]
+    [SwaggerResponse(404, "User not found")]
+    [SwaggerResponse(400, "Failed to assign role")]
     public async Task<IActionResult> AssignRoleToUser([FromBody] RoleAssignmentRequestDto request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -86,9 +111,15 @@ public class UserController : ControllerBase
         return Ok(new { message = $"Role {request.Role} assigned to {request.Email}" });
     }
 
-    // ADMIN ONLY - Get All Users
+    /// <summary>
+    /// Retrieves all users (Admin only).
+    /// </summary>
+    /// <returns>Returns a list of users.</returns>
     [HttpGet]
     [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Get all users (Admin only)", Description = "Fetches all registered users.")]
+    [SwaggerResponse(200, "Successfully retrieved all users", typeof(List<RegisterDto>))]
+    [SwaggerResponse(404, "No users available")]
     public async Task<IActionResult> GetAllUsers()
     {
         _logger.LogInformation("Admin fetching all users.");
@@ -104,10 +135,18 @@ public class UserController : ControllerBase
         return Ok(users.Select(user => new { user.Id, user.UserName, user.Email }));
     }
 
-    // AUTHORIZED USERS & ADMINS - Update User Profile
-    // AUTHORIZED USERS & ADMINS - Update User Profile
+    /// <summary>
+    /// Updates a user profile.
+    /// </summary>
+    /// <param name="id">User ID.</param>
+    /// <param name="dto">Updated user information.</param>
+    /// <returns>Returns success message.</returns>
     [HttpPut("{id}")]
-    [Authorize] // Only logged-in users can update
+    [Authorize] 
+    [SwaggerOperation(Summary = "Update user profile", Description = "Updates user profile details. Users can only update their own profile.")]
+    [SwaggerResponse(200, "User updated successfully")]
+    [SwaggerResponse(403, "Forbidden - User can only update their own profile")]
+    [SwaggerResponse(400, "Invalid update request")]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
     {
         var loggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -121,21 +160,18 @@ public class UserController : ControllerBase
             return BadRequest("Update request is empty or invalid.");
         }
 
-        // 🔹 If NOT an Admin, only allow updating own profile
         if (loggedInUserId != id && loggedInUserRole != "Admin")
         {
             _logger.LogWarning("User {UserId} attempted to update another user's profile.", loggedInUserId);
             return Forbid("You can only update your own profile.");
         }
 
-        // 🔹 Restrict updates to only email, password, and username
         dto.RestrictUpdates();
 
         if (!dto.IsValid())
         {
             return BadRequest("At least one field (UserName, Email, or NewPassword) must be provided.");
         }
-
 
         var success = await _userService.UpdateUserAsync(id, dto);
         if (!success)
@@ -148,10 +184,16 @@ public class UserController : ControllerBase
         return Ok("User updated successfully");
     }
 
-
-    // ADMIN ONLY - Delete Any User
+    /// <summary>
+    /// Deletes a user (Admin only).
+    /// </summary>
+    /// <param name="id">User ID to delete.</param>
+    /// <returns>Returns success message.</returns>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Delete a user (Admin only)", Description = "Deletes a user from the system.")]
+    [SwaggerResponse(200, "User deleted successfully")]
+    [SwaggerResponse(404, "User not found")]
     public async Task<IActionResult> DeleteUser(string id)
     {
         _logger.LogInformation("Admin attempting to delete user with ID {UserId}.", id);
@@ -167,4 +209,3 @@ public class UserController : ControllerBase
         return Ok("User deleted successfully");
     }
 }
-

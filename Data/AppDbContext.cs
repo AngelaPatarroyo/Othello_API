@@ -22,7 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(u => u.LeaderBoard)
             .WithOne(lb => lb.Player)
             .HasForeignKey<LeaderBoard>(lb => lb.PlayerId)
-            .OnDelete(DeleteBehavior.Cascade); //  Deleting a User removes their LeaderBoard entry
+            .OnDelete(DeleteBehavior.SetNull); //  Deleting a User removes their LeaderBoard entry
 
         //  Many-to-Many Relationship: User <-> Game via UserGame
         modelBuilder.Entity<UserGame>()

@@ -12,5 +12,6 @@ public class LeaderBoard
 
     public int Wins { get; set; } = 0;
 
-    public virtual required ApplicationUser Player { get; set; }
+    // Navigation property for the Player
+    public virtual required ApplicationUser Player { get; set; }  // No need for 'required' here, EF handles it.
 }

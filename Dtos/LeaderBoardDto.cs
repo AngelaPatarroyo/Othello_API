@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-public class LeaderboardDto
+public class LeaderBoardDto
 {
     [Required(ErrorMessage = "PlayerId is required.")]
     [MinLength(1, ErrorMessage = "PlayerId cannot be empty.")]

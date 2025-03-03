@@ -1537,13 +1537,13 @@
           "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll": {}
         }
       },
-      "Swashbuckle.AspNetCore/7.3.0": {
+      "Swashbuckle.AspNetCore/7.3.1": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.ApiDescription.Server": "6.0.5",
-          "Swashbuckle.AspNetCore.Swagger": "7.3.0",
-          "Swashbuckle.AspNetCore.SwaggerGen": "7.3.0",
-          "Swashbuckle.AspNetCore.SwaggerUI": "7.3.0"
+          "Swashbuckle.AspNetCore.Swagger": "7.3.1",
+          "Swashbuckle.AspNetCore.SwaggerGen": "7.3.1",
+          "Swashbuckle.AspNetCore.SwaggerUI": "7.3.1"
         },
         "build": {
           "build/Swashbuckle.AspNetCore.props": {}
@@ -1552,7 +1552,23 @@
           "buildMultiTargeting/Swashbuckle.AspNetCore.props": {}
         }
       },
-      "Swashbuckle.AspNetCore.Swagger/7.3.0": {
+      "Swashbuckle.AspNetCore.Annotations/7.3.1": {
+        "type": "package",
+        "dependencies": {
+          "Swashbuckle.AspNetCore.SwaggerGen": "7.3.1"
+        },
+        "compile": {
+          "lib/net9.0/Swashbuckle.AspNetCore.Annotations.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net9.0/Swashbuckle.AspNetCore.Annotations.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Swashbuckle.AspNetCore.Swagger/7.3.1": {
         "type": "package",
         "dependencies": {
           "Microsoft.OpenApi": "1.6.22"
@@ -1571,10 +1587,10 @@
           "Microsoft.AspNetCore.App"
         ]
       },
-      "Swashbuckle.AspNetCore.SwaggerGen/7.3.0": {
+      "Swashbuckle.AspNetCore.SwaggerGen/7.3.1": {
         "type": "package",
         "dependencies": {
-          "Swashbuckle.AspNetCore.Swagger": "7.3.0"
+          "Swashbuckle.AspNetCore.Swagger": "7.3.1"
         },
         "compile": {
           "lib/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll": {
@@ -1587,7 +1603,7 @@
           }
         }
       },
-      "Swashbuckle.AspNetCore.SwaggerUI/7.3.0": {
+      "Swashbuckle.AspNetCore.SwaggerUI/7.3.1": {
         "type": "package",
         "compile": {
           "lib/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll": {
@@ -5504,24 +5520,48 @@
         "sqlitepclraw.provider.e_sqlite3.nuspec"
       ]
     },
-    "Swashbuckle.AspNetCore/7.3.0": {
-      "sha512": "xRNYUPor/x/qvtFYF1qeZa9FrQixOOfLDgG+J4FRMWPqXmWjttMNglrjG9ATIUzY27LT/6JHqWFFDvDYw1f2gg==",
+    "Swashbuckle.AspNetCore/7.3.1": {
+      "sha512": "6u8w+UXp/sF89xQjfydWw6znQrUpbpFOmEIs8ODE+S0bV+mCQ9dNP4mk+HRsGHylpDaP5KSYSCEfFSgluLXHsA==",
       "type": "package",
-      "path": "swashbuckle.aspnetcore/7.3.0",
+      "path": "swashbuckle.aspnetcore/7.3.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "build/Swashbuckle.AspNetCore.props",
         "buildMultiTargeting/Swashbuckle.AspNetCore.props",
         "docs/package-readme.md",
-        "swashbuckle.aspnetcore.7.3.0.nupkg.sha512",
+        "swashbuckle.aspnetcore.7.3.1.nupkg.sha512",
         "swashbuckle.aspnetcore.nuspec"
       ]
     },
-    "Swashbuckle.AspNetCore.Swagger/7.3.0": {
-      "sha512": "YaNmzUkjlc+KuGBDFa21captWqF8OJliXzTXweLpG88DOKvsQ9Dsadlq/1ZE8aMhT4mQIlc565/ZfvkNckXapw==",
+    "Swashbuckle.AspNetCore.Annotations/7.3.1": {
+      "sha512": "DuH1WoZDFGhD0p9b9ru1kNlC/BBCQyArKUzDQJMt3bPfia/27Yi69IYYC3+QydZwm2qSXcaUy9Z5CFvXb/X9Tg==",
       "type": "package",
-      "path": "swashbuckle.aspnetcore.swagger/7.3.0",
+      "path": "swashbuckle.aspnetcore.annotations/7.3.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net6.0/Swashbuckle.AspNetCore.Annotations.dll",
+        "lib/net6.0/Swashbuckle.AspNetCore.Annotations.pdb",
+        "lib/net6.0/Swashbuckle.AspNetCore.Annotations.xml",
+        "lib/net8.0/Swashbuckle.AspNetCore.Annotations.dll",
+        "lib/net8.0/Swashbuckle.AspNetCore.Annotations.pdb",
+        "lib/net8.0/Swashbuckle.AspNetCore.Annotations.xml",
+        "lib/net9.0/Swashbuckle.AspNetCore.Annotations.dll",
+        "lib/net9.0/Swashbuckle.AspNetCore.Annotations.pdb",
+        "lib/net9.0/Swashbuckle.AspNetCore.Annotations.xml",
+        "lib/netstandard2.0/Swashbuckle.AspNetCore.Annotations.dll",
+        "lib/netstandard2.0/Swashbuckle.AspNetCore.Annotations.pdb",
+        "lib/netstandard2.0/Swashbuckle.AspNetCore.Annotations.xml",
+        "package-readme.md",
+        "swashbuckle.aspnetcore.annotations.7.3.1.nupkg.sha512",
+        "swashbuckle.aspnetcore.annotations.nuspec"
+      ]
+    },
+    "Swashbuckle.AspNetCore.Swagger/7.3.1": {
+      "sha512": "jQuJ8kVbq+YE8WsJE3RwWHlF1kasp0QkA9Gl6NeNLICrhcgN8IQIthMufYW6t/4hpcN5cBIdES5jCEV81WjHbA==",
+      "type": "package",
+      "path": "swashbuckle.aspnetcore.swagger/7.3.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -5538,14 +5578,14 @@
         "lib/netstandard2.0/Swashbuckle.AspNetCore.Swagger.pdb",
         "lib/netstandard2.0/Swashbuckle.AspNetCore.Swagger.xml",
         "package-readme.md",
-        "swashbuckle.aspnetcore.swagger.7.3.0.nupkg.sha512",
+        "swashbuckle.aspnetcore.swagger.7.3.1.nupkg.sha512",
         "swashbuckle.aspnetcore.swagger.nuspec"
       ]
     },
-    "Swashbuckle.AspNetCore.SwaggerGen/7.3.0": {
-      "sha512": "RFsv4+vnA8CFF73vJeQqDT3aEybt4Tw7+9Z6H+NQ18pVJD5h4HeTDJeEPBhT+JZikBEA+GM5mvPQ+llBe3ZKog==",
+    "Swashbuckle.AspNetCore.SwaggerGen/7.3.1": {
+      "sha512": "xs7Pznb3SSjZy7HpThE0ILqECfQFsGDHOrRoIYD/j67ktdRR1juDG4AMyidXXCOipgzHanZoF+nFrc+Nmjqjyw==",
       "type": "package",
-      "path": "swashbuckle.aspnetcore.swaggergen/7.3.0",
+      "path": "swashbuckle.aspnetcore.swaggergen/7.3.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -5562,14 +5602,14 @@
         "lib/netstandard2.0/Swashbuckle.AspNetCore.SwaggerGen.pdb",
         "lib/netstandard2.0/Swashbuckle.AspNetCore.SwaggerGen.xml",
         "package-readme.md",
-        "swashbuckle.aspnetcore.swaggergen.7.3.0.nupkg.sha512",
+        "swashbuckle.aspnetcore.swaggergen.7.3.1.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggergen.nuspec"
       ]
     },
-    "Swashbuckle.AspNetCore.SwaggerUI/7.3.0": {
-      "sha512": "CiWrMnLZMjnXSNoY1BSa5HWcbv6ibe4YnMq8HPhwSiTf44eiyNZlIpK4Y5Vvdv9MI7qmwC2q53a3R4JqNKTocg==",
+    "Swashbuckle.AspNetCore.SwaggerUI/7.3.1": {
+      "sha512": "hs6C+lmNEzipOA1WPQpIaGvvoXjUbnoevbv6l7o9ZQE8SNF8ggjOmK6NB6cYdMcEvk0uBeKl4Qq/BnRt5MFVqg==",
       "type": "package",
-      "path": "swashbuckle.aspnetcore.swaggerui/7.3.0",
+      "path": "swashbuckle.aspnetcore.swaggerui/7.3.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -5586,7 +5626,7 @@
         "lib/netstandard2.0/Swashbuckle.AspNetCore.SwaggerUI.pdb",
         "lib/netstandard2.0/Swashbuckle.AspNetCore.SwaggerUI.xml",
         "package-readme.md",
-        "swashbuckle.aspnetcore.swaggerui.7.3.0.nupkg.sha512",
+        "swashbuckle.aspnetcore.swaggerui.7.3.1.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggerui.nuspec"
       ]
     },
@@ -9013,7 +9053,8 @@
       "Microsoft.EntityFrameworkCore >= 9.0.2",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.2",
       "Microsoft.EntityFrameworkCore.Sqlite >= 9.0.2",
-      "Swashbuckle.AspNetCore >= 7.3.0",
+      "Swashbuckle.AspNetCore >= 7.3.1",
+      "Swashbuckle.AspNetCore.Annotations >= 7.3.1",
       "dotenv.net >= 3.2.1"
     ]
   },
@@ -9023,11 +9064,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/angela/Desktop/Web Application/Othello_API/Othello_API.csproj",
+      "projectUniqueName": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj",
       "projectName": "Othello_API",
-      "projectPath": "/Users/angela/Desktop/Web Application/Othello_API/Othello_API.csproj",
+      "projectPath": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj",
       "packagesPath": "/Users/angela/.nuget/packages/",
-      "outputPath": "/Users/angela/Desktop/Web Application/Othello_API/obj/",
+      "outputPath": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/angela/.nuget/NuGet/NuGet.Config"
@@ -9107,7 +9148,11 @@
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",
-            "version": "[7.3.0, )"
+            "version": "[7.3.1, )"
+          },
+          "Swashbuckle.AspNetCore.Annotations": {
+            "target": "Package",
+            "version": "[7.3.1, )"
           },
           "dotenv.net": {
             "target": "Package",

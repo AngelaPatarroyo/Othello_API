@@ -13,14 +13,14 @@ public class LeaderBoardService : ILeaderBoardService
     }
 
     // Fetch full leaderboard
-    public async Task<List<LeaderboardDto>> GetLeaderboardAsync()
+    public async Task<List<LeaderBoardDto>> GetLeaderboardAsync()
     {
         _logger.LogInformation("Fetching full leaderboard.");
 
         var leaderboard = await _context.LeaderBoard
             .Include(l => l.Player)
             .Where(l => l.Player != null)
-            .Select(lb => new LeaderboardDto
+            .Select(lb => new LeaderBoardDto
             {
                 PlayerId = lb.PlayerId,
                 PlayerName = lb.Player.UserName ?? "Unknown",
@@ -42,7 +42,7 @@ public class LeaderBoardService : ILeaderBoardService
     }
 
     // Fetch ranking of a specific user
-    public async Task<LeaderboardDto?> GetUserRankingAsync(string userId)
+    public async Task<LeaderBoardDto?> GetUserRankingAsync(string userId)
     {
         _logger.LogInformation("Fetching ranking for UserId: {UserId}.", userId);
 

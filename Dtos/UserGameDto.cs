@@ -4,6 +4,8 @@ namespace Othello_API.DTOs
 {
     public class UserGameDto
     {
+        public int UserGameId { get; set; } // Add this to match the database model
+
         [Required(ErrorMessage = "UserId is required.")]
         [MinLength(1, ErrorMessage = "UserId cannot be empty.")]
         public required string UserId { get; set; }

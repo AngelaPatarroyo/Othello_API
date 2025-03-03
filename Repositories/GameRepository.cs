@@ -117,4 +117,4 @@ public class GameRepository : IGameRepository
 
         _logger.LogInformation("Leaderboard entry for PlayerId {PlayerId} updated successfully.", leaderboard.PlayerId);
     }
-}
+}      

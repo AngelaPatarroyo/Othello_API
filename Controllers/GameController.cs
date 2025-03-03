@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "Admin")] //  Restrict all endpoints to Admin users
 public class GameController : ControllerBase
 {
     private readonly IGameService _gameService;
@@ -22,11 +21,12 @@ public class GameController : ControllerBase
         _logger = logger;
     }
 
-    // Start a new game
+    // 🚀 Start a new game - Anyone can access
     [HttpPost("start")]
+    [AllowAnonymous] // 👈 Anyone can start a game
     public async Task<IActionResult> StartGame([FromBody] StartGameDto gameDto)
     {
-        _logger.LogInformation("Admin is starting a new game with Player1: {Player1Id}, Player2: {Player2Id}.", gameDto.Player1Id, gameDto.Player2Id);
+        _logger.LogInformation("User is starting a new game with Player1: {Player1Id}, Player2: {Player2Id}.", gameDto.Player1Id, gameDto.Player2Id);
 
         if (!ModelState.IsValid)
         {
@@ -64,16 +64,16 @@ public class GameController : ControllerBase
         });
     }
 
-    // Get a single game by gameId
+    // 🔍 Get a single game by gameId - Anyone can view
     [HttpGet("{gameId}")]
     public async Task<IActionResult> GetGame(int gameId)
     {
-        _logger.LogInformation("Admin is retrieving details for GameId: {GameId}.", gameId);
+        _logger.LogInformation("Retrieving details for GameId: {GameId}.", gameId);
 
         var game = await _context.Games
-            .Include(g => g.Player1)  // Ensure Player1 is loaded
-            .Include(g => g.Player2)  // Ensure Player2 is loaded
-            .Include(g => g.Winner)   // Ensure Winner is loaded
+            .Include(g => g.Player1)
+            .Include(g => g.Player2)
+            .Include(g => g.Winner)
             .FirstOrDefaultAsync(g => g.GameId == gameId);
 
         if (game == null)
@@ -112,27 +112,26 @@ public class GameController : ControllerBase
         });
     }
 
-
-    // Get all games
+    // 📌 Get all games - Admin only
     [HttpGet]
+    [Authorize(Roles = "Admin")] // 👈 Only Admin can get all games
     public async Task<IActionResult> GetAllGames([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        _logger.LogInformation("Fetching all games with pagination (Page: {Page}, PageSize: {PageSize})", page, pageSize);
+        _logger.LogInformation("Admin is fetching all games with pagination (Page: {Page}, PageSize: {PageSize})", page, pageSize);
 
-        // Ensure page size is reasonable (prevent abuse)
-        pageSize = Math.Clamp(pageSize, 1, 50); // Limit page size between 1 and 50
+        pageSize = Math.Clamp(pageSize, 1, 50);
 
         var query = _context.Games
             .Include(g => g.Player1)
             .Include(g => g.Player2)
             .Include(g => g.Winner);
 
-        var totalGames = await query.CountAsync(); // Get total number of games
+        var totalGames = await query.CountAsync();
 
         var games = await query
-            .OrderByDescending(g => g.CreatedAt) // Sort by newest games first
-            .Skip((page - 1) * pageSize) // Skip previous pages
-            .Take(pageSize) // Limit results to pageSize
+            .OrderByDescending(g => g.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         return Ok(new
@@ -153,31 +152,9 @@ public class GameController : ControllerBase
         });
     }
 
-    // Update game details
-    [HttpPut("{gameId}")]
-    public async Task<IActionResult> UpdateGame(int gameId, [FromBody] UpdateGameDto dto)
-    {
-        _logger.LogInformation("Admin is updating Game {GameId}.", gameId);
-
-        if (!ModelState.IsValid)
-        {
-            _logger.LogWarning("Invalid update request for Game {GameId}.", gameId);
-            return BadRequest(ModelState);
-        }
-
-        var success = await _gameService.UpdateGameAsync(gameId, dto);
-        if (!success)
-        {
-            _logger.LogWarning("Game {GameId} not found for update.", gameId);
-            return NotFound("Game not found.");
-        }
-
-        _logger.LogInformation("Game {GameId} updated successfully.", gameId);
-        return Ok("Game updated successfully.");
-    }
-
-    // Delete a game
+    // ❌ Delete a game - Admin only
     [HttpDelete("{gameId}")]
+    [Authorize(Roles = "Admin")] // 👈 Only Admin can delete games
     public async Task<IActionResult> DeleteGame(int gameId)
     {
         _logger.LogInformation("Admin is deleting Game {GameId}.", gameId);

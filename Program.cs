@@ -23,9 +23,9 @@ var config = new ConfigurationBuilder()
     .Build();
 
 // Database Connection
-var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? config.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(dbConnection))
-    throw new InvalidOperationException("Database connection string is missing.");
+var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                   ?? "Data Source=/app/OthelloDB.sqlite"; //  Fallback to default if env var is missing
+
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(dbConnection));
@@ -177,7 +177,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseIpRateLimiting();
 app.UseAuthentication();
-app.UseMiddleware<Othello_API.Middleware.ErrorHandlingMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<Othello_API.Middleware.ErrorHandlingMiddleware>();
 app.MapControllers();
 app.Run();

@@ -21,10 +21,12 @@ namespace Othello_API.Middleware
             {
                 await _next(context);
 
-                // 🔹 Handle 404 errors
-                if (context.Response.StatusCode == (int)HttpStatusCode.NotFound)
+                // 🔹 Handle 404 errors properly
+                if (context.Response.StatusCode == (int)HttpStatusCode.NotFound && !context.Response.HasStarted)
                 {
+                    context.Response.Clear();  // Ensure no previous content is sent
                     context.Response.ContentType = "application/json";
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound; // Explicitly set the status
                     var errorResponse = new { message = "Resource not found" };
                     await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
                 }

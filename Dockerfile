@@ -12,7 +12,9 @@ RUN dotnet restore
 COPY . ./
 
 # Build and publish the application
-RUN dotnet publish Othello_API.csproj -c Release -o /app/publish --no-restore
+RUN dotnet restore Othello_API.csproj
+RUN dotnet publish Othello_API.csproj -c Release -o /app/publish
+
 
 # ==============================
 # Stage 2: Runtime

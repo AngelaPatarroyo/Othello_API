@@ -73,11 +73,11 @@ namespace Othello_API.Services
             }
 
             _logger.LogInformation("User {UsernameOrEmail} logged in successfully.", loginDto.UserName ?? loginDto.Email);
-            return GenerateJwtToken(user);
+            return await GenerateJwtToken(user);
         }
 
         // Generate JWT Token
-        private string GenerateJwtToken(ApplicationUser user)
+        private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             _logger.LogInformation("Generating JWT token for user {UsernameOrEmail}.", user.UserName ?? user.Email);
 
@@ -90,24 +90,33 @@ namespace Othello_API.Services
 
             byte[] key = Encoding.UTF8.GetBytes(secretKey);
 
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? "UnknownUser"),
+                new Claim(ClaimTypes.Email, user.Email ?? "")
+            };
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? "UnknownUser"),
-                    new Claim(ClaimTypes.Email, user.Email ?? ""),
-                    new Claim(ClaimTypes.Role, "Player")
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
             };
 
+            var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             _logger.LogInformation("JWT token successfully generated for user {UsernameOrEmail}.", user.UserName ?? user.Email);
+
             return tokenHandler.WriteToken(token);
         }
 

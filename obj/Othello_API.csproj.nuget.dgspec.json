@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj": {}
+    "/Users/angela/Desktop/Web Application/othello_back/Othello_API/Othello_API.csproj": {}
   },
   "projects": {
-    "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj": {
+    "/Users/angela/Desktop/Web Application/othello_back/Othello_API/Othello_API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj",
+        "projectUniqueName": "/Users/angela/Desktop/Web Application/othello_back/Othello_API/Othello_API.csproj",
         "projectName": "Othello_API",
-        "projectPath": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/Othello_API.csproj",
+        "projectPath": "/Users/angela/Desktop/Web Application/othello_back/Othello_API/Othello_API.csproj",
         "packagesPath": "/Users/angela/.nuget/packages/",
-        "outputPath": "/Users/angela/Desktop/Web Application/7SENG014W_W1311348/Othello_API/obj/",
+        "outputPath": "/Users/angela/Desktop/Web Application/othello_back/Othello_API/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/angela/.nuget/NuGet/NuGet.Config"

@@ -24,8 +24,7 @@ var config = new ConfigurationBuilder()
 
 // Database Connection
 var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
-                   ?? "Data Source=/app/OthelloDB.sqlite"; //  Fallback to default if env var is missing
-
+                   ?? "Data Source=/app/OthelloDB.sqlite";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(dbConnection));
@@ -67,16 +66,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("PlayerOnly", policy => policy.RequireRole("Player"));
 });
 
-// CORS Policy
+// ✅ CORREGIDO: CORS para permitir headers y credenciales desde localhost:3000
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.WithOrigins("https://your-frontend-domain.com", "http://localhost:3000")
+        policy => policy.WithOrigins("http://localhost:3000")
                         .AllowAnyMethod()
-                        .WithHeaders("Authorization", "Content-Type"));
+                        .AllowAnyHeader()
+                        .AllowCredentials());
 });
 
-// Add Rate Limiting
+// Rate Limiting
 builder.Services.AddMemoryCache();
 builder.Services.Configure<IpRateLimitOptions>(options =>
 {
@@ -85,8 +85,8 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
         new RateLimitRule
         {
             Endpoint = "*",
-            Limit = 100,  // Max 100 requests
-            Period = "1m" // Per minute
+            Limit = 100,
+            Period = "1m"
         }
     };
 });
@@ -113,7 +113,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
 
-// API Documentation
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -139,22 +139,21 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    options.EnableAnnotations(); //  This enables SwaggerOperation & SwaggerResponse
+    options.EnableAnnotations();
 });
-
 
 builder.Services.AddScoped<EmailService>();
 
-// Build & Run Application
+// Build & Run App
 var app = builder.Build();
 
-// Apply Pending Migrations Automatically
+// Apply Pending Migrations
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
-    dbContext.Database.Migrate(); // Ensure database is up to date
+    dbContext.Database.Migrate();
 
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     string[] roleNames = { "Admin", "Player" };
@@ -170,7 +169,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Apply Security Middleware
+// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -42,11 +42,32 @@ namespace Othello_API.Services
 
             if (result.Succeeded)
             {
+                var defaultRole = "Admin"; // Change to "Player" if default should be player
+                var roleExists = await _dbContext.Roles.AnyAsync(r => r.Name == defaultRole);
+                if (!roleExists)
+                {
+                    _logger.LogWarning("Role '{Role}' does not exist in database.", defaultRole);
+                }
+                else
+                {
+                    var roleResult = await _userManager.AddToRoleAsync(user, defaultRole);
+                    if (!roleResult.Succeeded)
+                    {
+                        _logger.LogWarning("Failed to assign '{Role}' role to {Username}: {Errors}", defaultRole, registerDto.UserName,
+                            string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Assigned '{Role}' role to {Username}.", defaultRole, registerDto.UserName);
+                    }
+                }
+
                 _logger.LogInformation("User {Username} registered successfully.", registerDto.UserName);
                 return user;
             }
 
-            _logger.LogError("Failed to register user {Username}. Errors: {Errors}", registerDto.UserName, string.Join(", ", result.Errors));
+            _logger.LogError("Failed to register user {Username}. Errors: {Errors}", registerDto.UserName,
+                string.Join(", ", result.Errors));
             return null;
         }
 
@@ -186,7 +207,7 @@ namespace Othello_API.Services
             return true;
         }
 
-        // Delete User (Fix FOREIGN KEY issue)
+        // Delete User
         public async Task<bool> DeleteUserAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -196,7 +217,6 @@ namespace Othello_API.Services
                 return false;
             }
 
-            // Remove related UserGames
             var userGames = await _dbContext.UserGames.Where(ug => ug.UserId == id).ToListAsync();
             if (userGames.Any())
             {
@@ -204,7 +224,6 @@ namespace Othello_API.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            // Remove LeaderBoard entry if exists
             var leaderBoardEntry = await _dbContext.LeaderBoard.FirstOrDefaultAsync(lb => lb.PlayerId == id);
             if (leaderBoardEntry != null)
             {
@@ -212,7 +231,6 @@ namespace Othello_API.Services
                 await _dbContext.SaveChangesAsync();
             }
 
-            // Update Game table to NULL instead of deleting (to prevent FK issues)
             var gamesWhereUserIsPlayer1 = await _dbContext.Games.Where(g => g.Player1Id == id).ToListAsync();
             foreach (var game in gamesWhereUserIsPlayer1)
             {
@@ -227,18 +245,17 @@ namespace Othello_API.Services
 
             await _dbContext.SaveChangesAsync();
 
-            // Remove user from roles
             var roles = await _userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {
                 await _userManager.RemoveFromRoleAsync(user, role);
             }
 
-            // Now delete the user
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
-                _logger.LogWarning("Failed to delete user {UserId}. Errors: {Errors}", id, string.Join(", ", result.Errors));
+                _logger.LogWarning("Failed to delete user {UserId}. Errors: {Errors}", id,
+                    string.Join(", ", result.Errors));
                 return false;
             }
 

@@ -5,12 +5,12 @@ using Othello_API.DTOs;
 
 [Route("api/[controller]")]
 [ApiController]
-public class LeaderBoardController : ControllerBase
+public class LeaderboardController : ControllerBase
 {
     private readonly ILeaderBoardService _leaderBoardService;
-    private readonly ILogger<LeaderBoardController> _logger;
+    private readonly ILogger<LeaderboardController> _logger;
 
-    public LeaderBoardController(ILeaderBoardService leaderBoardService, ILogger<LeaderBoardController> logger)
+    public LeaderboardController(ILeaderBoardService leaderBoardService, ILogger<LeaderboardController> logger)
     {
         _leaderBoardService = leaderBoardService;
         _logger = logger;
@@ -21,7 +21,7 @@ public class LeaderBoardController : ControllerBase
     /// </summary>
     /// <returns>Returns a list of users ranked by performance.</returns>
     [HttpGet]
-    [Authorize(Roles = "Admin")] // 👈 Full leaderboard restricted to Admins only
+    [Authorize(Roles = "Admin")] //  Full leaderboard restricted to Admins only
     [SwaggerOperation(Summary = "Get full leaderboard (Admin only)", Description = "Fetches the full leaderboard rankings. Requires Admin role.")]
     [SwaggerResponse(200, "Successfully retrieved leaderboard rankings", typeof(List<LeaderBoardDto>))]
     [SwaggerResponse(404, "No rankings found")]

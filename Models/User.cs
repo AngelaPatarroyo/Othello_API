@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
+using Othello_API.Models;
 
 
 public class ApplicationUser : IdentityUser

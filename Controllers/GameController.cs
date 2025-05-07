@@ -20,11 +20,6 @@ public class GameController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Starts a new game between two players.
-    /// </summary>
-    /// <param name="gameDto">The game details including Player IDs.</param>
-    /// <returns>Returns the created game details.</returns>
     [HttpPost("start")]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "Start a new game", Description = "Creates a new game between two players and returns game details.")]
@@ -63,11 +58,6 @@ public class GameController : ControllerBase
         return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, new GameDto(game));
     }
 
-    /// <summary>
-    /// Retrieves a game by its ID.
-    /// </summary>
-    /// <param name="gameId">The ID of the game to retrieve.</param>
-    /// <returns>Returns the game details.</returns>
     [HttpGet("{gameId}")]
     [SwaggerOperation(Summary = "Get game by ID", Description = "Fetches details of a specific game.")]
     [SwaggerResponse(200, "Successfully retrieved game", typeof(GameDto))]
@@ -93,9 +83,6 @@ public class GameController : ControllerBase
         return Ok(new GameDto(game));
     }
 
-    /// <summary>
-    /// Retrieves all games. (Admin only)
-    /// </summary>
     [HttpGet]
     [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Get all games (Admin only)", Description = "Fetches all games. Requires Admin role.")]
@@ -114,18 +101,11 @@ public class GameController : ControllerBase
         return Ok(games.Select(game => new GameDto(game)).ToList());
     }
 
-    /// <summary>
-    /// Updates the status of an existing game.
-    /// </summary>
-    /// <param name="gameId">The ID of the game to update.</param>
-    /// <param name="updateGameDto">The game details to update.</param>
-    /// <returns>Returns the updated game details.</returns>
     [HttpPut("{gameId}")]
     [SwaggerOperation(Summary = "Update game", Description = "Updates the status and winner of an existing game.")]
     [SwaggerResponse(200, "Game updated successfully", typeof(GameDto))]
     [SwaggerResponse(404, "Game not found")]
     [SwaggerResponse(400, "Invalid game update request")]
-    [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> UpdateGame(int gameId, [FromBody] UpdateGameDto updateGameDto)
     {
         _logger.LogInformation("Attempting to update game with ID {GameId}.", gameId);
@@ -136,29 +116,22 @@ public class GameController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var game = await _context.Games.FindAsync(gameId);
-
-        if (game == null)
+        var success = await _gameService.UpdateGameAsync(gameId, updateGameDto);
+        if (!success)
         {
-            _logger.LogWarning("Game with ID {GameId} not found.", gameId);
-            return NotFound(new { message = "Game not found." });
+            _logger.LogWarning("Game with ID {GameId} not found or update failed.", gameId);
+            return NotFound(new { message = "Game not found or update failed." });
         }
 
-        // Update game status and winner
-        game.GameStatus = updateGameDto.GameStatus;
-        game.WinnerId = updateGameDto.WinnerId;
+        var updatedGame = await _context.Games
+            .Include(g => g.Player1)
+            .Include(g => g.Player2)
+            .Include(g => g.Winner)
+            .FirstOrDefaultAsync(g => g.GameId == gameId);
 
-        _context.Games.Update(game);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Game with ID {GameId} updated successfully.", gameId);
-        return Ok(new GameDto(game)); // Return updated game details
+        return Ok(new GameDto(updatedGame!));
     }
 
-    /// <summary>
-    /// Deletes a game. (Admin only)
-    /// </summary>
-    /// <param name="gameId">The ID of the game to delete.</param>
     [HttpDelete("{gameId}")]
     [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Delete a game (Admin only)", Description = "Deletes a game by ID. Requires Admin role.")]

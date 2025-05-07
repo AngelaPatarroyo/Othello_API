@@ -1,5 +1,7 @@
 using Othello_API.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Othello_API.Models;
+
 
 
 namespace Othello_API.Repositories

@@ -14,11 +14,10 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Env.Load(); // Load .env (local only — for Render use Environment tab)
+        Env.Load();
 
         var builder = WebApplication.CreateBuilder(args);
 
-        // Load Configuration
         var config = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddEnvironmentVariables()
@@ -26,19 +25,26 @@ public class Program
             .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
             .Build();
 
-        // Database Connection
         var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
                            ?? "Data Source=/app/OthelloDB.sqlite";
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(dbConnection));
 
-        // Identity & Authentication
-        builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+        // Identity sin cookies
+        builder.Services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+        })
+        .AddRoles<IdentityRole>()
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders();
 
+        // Registro manual para SignInManager y IHttpContextAccessor
+        builder.Services.AddScoped<SignInManager<ApplicationUser>>();
+        builder.Services.AddHttpContextAccessor();
+
+        // JWT
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? config["JwtSettings:Secret"];
         if (string.IsNullOrEmpty(jwtSecret))
             throw new InvalidOperationException("JWT Secret is missing.");
@@ -62,14 +68,12 @@ public class Program
                 };
             });
 
-        // Authorization Policies
         builder.Services.AddAuthorization(options =>
         {
             options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
             options.AddPolicy("PlayerOnly", policy => policy.RequireRole("Player"));
         });
 
-        // CORS
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowFrontend",
@@ -79,7 +83,6 @@ public class Program
                                 .AllowCredentials());
         });
 
-        // Rate Limiting
         builder.Services.AddMemoryCache();
         builder.Services.Configure<IpRateLimitOptions>(options =>
         {
@@ -88,7 +91,7 @@ public class Program
                 new RateLimitRule
                 {
                     Endpoint = "*",
-                    Limit = 100,
+                    Limit = 1000,
                     Period = "1m"
                 }
             };
@@ -98,7 +101,6 @@ public class Program
         builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
-        // JSON & Controllers
         builder.Services.AddControllers()
             .AddJsonOptions(options =>
             {
@@ -106,7 +108,6 @@ public class Program
                 options.JsonSerializerOptions.WriteIndented = true;
             });
 
-        // Services & Repositories
         builder.Services.AddScoped<IGameService, GameService>();
         builder.Services.AddScoped<IMoveService, MoveService>();
         builder.Services.AddScoped<ILeaderBoardService, LeaderBoardService>();
@@ -117,7 +118,6 @@ public class Program
         builder.Services.AddScoped<IUserGameRepository, UserGameRepository>();
         builder.Services.AddScoped<EmailService>();
 
-        // Swagger
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(options =>
         {
@@ -148,7 +148,6 @@ public class Program
 
         var app = builder.Build();
 
-        // Apply Pending Migrations and Seed Roles
         using (var scope = app.Services.CreateScope())
         {
             var services = scope.ServiceProvider;
@@ -169,14 +168,12 @@ public class Program
             }
         }
 
-        // Middleware
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
             app.UseSwaggerUI();
         }
 
-        //app.UseHttpsRedirection(); // Optional
         app.UseCors("AllowFrontend");
         app.UseIpRateLimiting();
         app.UseAuthentication();

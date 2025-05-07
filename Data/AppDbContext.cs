@@ -7,7 +7,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options) { }
 
-    // DbSets for your models
     public DbSet<Game> Games { get; set; }
     public DbSet<UserGame> UserGames { get; set; }
     public DbSet<LeaderBoard> LeaderBoard { get; set; }
@@ -17,45 +16,49 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
-        //  Ensure Identity tables are configured
+        // One-to-One: User ↔ Leaderboard
         modelBuilder.Entity<ApplicationUser>()
             .HasOne(u => u.LeaderBoard)
             .WithOne(lb => lb.Player)
             .HasForeignKey<LeaderBoard>(lb => lb.PlayerId)
-            .OnDelete(DeleteBehavior.SetNull); //  Deleting a User removes their LeaderBoard entry
+            .OnDelete(DeleteBehavior.SetNull);
 
-        //  Many-to-Many Relationship: User <-> Game via UserGame
+        // Many-to-Many: User ↔ Game via UserGame
         modelBuilder.Entity<UserGame>()
-            .HasKey(ug => ug.UserGameId); // Primary Key
+            .HasKey(ug => ug.UserGameId);
 
         modelBuilder.Entity<UserGame>()
-            .HasOne(ug => ug.User)
-            .WithMany(u => u.UserGames)
-            .HasForeignKey(ug => ug.UserId)
-            .OnDelete(DeleteBehavior.Cascade); //  Deleting a User removes related UserGames
+    .HasOne<ApplicationUser>(ug => ug.User)
+    .WithMany(u => u.UserGames)
+    .HasForeignKey(ug => ug.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
+
 
         modelBuilder.Entity<UserGame>()
             .HasOne(ug => ug.Game)
             .WithMany(g => g.UserGames)
             .HasForeignKey(ug => ug.GameId)
-            .OnDelete(DeleteBehavior.Cascade); //  Deleting a Game removes related UserGames
+            .OnDelete(DeleteBehavior.Cascade);
 
-        //  Game relationships (Prevent accidental user deletion)
+        // Game → Player1 (required)
         modelBuilder.Entity<Game>()
             .HasOne(g => g.Player1)
             .WithMany()
             .HasForeignKey(g => g.Player1Id)
-            .OnDelete(DeleteBehavior.Restrict); // 🔹 Prevent accidental deletion of Player1
+            .OnDelete(DeleteBehavior.Restrict);
 
+        // Game → Player2 (required)
         modelBuilder.Entity<Game>()
             .HasOne(g => g.Player2)
             .WithMany()
             .HasForeignKey(g => g.Player2Id)
-            .OnDelete(DeleteBehavior.Restrict); // 🔹 Prevent accidental deletion of Player2
+            .OnDelete(DeleteBehavior.Restrict);
 
-        //  Prevent EF Core from auto-including navigation properties in UserGame
-        modelBuilder.Entity<UserGame>()
-            .Ignore(ug => ug.User)
-            .Ignore(ug => ug.Game);
+        // Game → Winner (optional)
+        modelBuilder.Entity<Game>()
+            .HasOne(g => g.Winner)
+            .WithMany()
+            .HasForeignKey(g => g.WinnerId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

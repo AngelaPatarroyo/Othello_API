@@ -1,4 +1,5 @@
 
+using Othello_API.Models;
 
 namespace Othello_API.Interfaces
 {

@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using Othello_API.Dtos;
 using Othello_API.Interfaces;
-using System.Security.Claims;
-using System.Linq;
-using System.Threading.Tasks;
 using Swashbuckle.AspNetCore.Annotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -15,24 +16,22 @@ public class UserController : ControllerBase
     private readonly IUserService _userService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<UserController> _logger;
+    private readonly IConfiguration _config;
 
-    public UserController(IUserService userService, UserManager<ApplicationUser> userManager, ILogger<UserController> logger)
+    public UserController(
+        IUserService userService,
+        UserManager<ApplicationUser> userManager,
+        ILogger<UserController> logger,
+        IConfiguration config)
     {
         _userService = userService;
         _userManager = userManager;
         _logger = logger;
+        _config = config;
     }
 
-    /// <summary>
-    /// Registers a new user.
-    /// </summary>
-    /// <param name="registerDto">User registration details.</param>
-    /// <returns>Returns success message with user details.</returns>
     [HttpPost("register")]
     [AllowAnonymous]
-    [SwaggerOperation(Summary = "Register a new user", Description = "Creates a new user account.")]
-    [SwaggerResponse(200, "User registered successfully", typeof(RegisterDto))]
-    [SwaggerResponse(400, "Invalid registration request")]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
         if (registerDto == null || !ModelState.IsValid)
@@ -53,47 +52,66 @@ public class UserController : ControllerBase
         return Ok(new { message = "User registered successfully", user.Id, user.UserName, user.Email });
     }
 
-    /// <summary>
-    /// Authenticates and logs in a user.
-    /// </summary>
-    /// <param name="loginDto">User login credentials.</param>
-    /// <returns>Returns a JWT token if successful.</returns>
     [HttpPost("login")]
     [AllowAnonymous]
-    [SwaggerOperation(Summary = "Login a user", Description = "Authenticates a user and returns a JWT token.")]
-    [SwaggerResponse(200, "Login successful", typeof(string))]
-    [SwaggerResponse(401, "Invalid login credentials")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        if (loginDto == null || !ModelState.IsValid)
+        if (loginDto == null || !ModelState.IsValid || !loginDto.IsValid())
         {
             _logger.LogWarning("Invalid login attempt.");
             return BadRequest(new { message = "Invalid login credentials" });
         }
 
-        var token = await _userService.LoginUserAsync(loginDto);
+        ApplicationUser? user = !string.IsNullOrEmpty(loginDto.Email)
+            ? await _userManager.FindByEmailAsync(loginDto.Email)
+            : await _userManager.FindByNameAsync(loginDto.UserName!);
 
-        if (string.IsNullOrEmpty(token))
+        if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
         {
-            _logger.LogWarning("Invalid login attempt.");
-            return Unauthorized(new { message = "Invalid login credentials" });
+            _logger.LogWarning("Login failed for user {User}.", loginDto.Email ?? loginDto.UserName);
+            return Unauthorized(new { message = "Invalid credentials" });
         }
 
-        _logger.LogInformation("User logged in successfully.");
-        return Ok(new { token });
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Name, user.UserName ?? ""),
+            new Claim(ClaimTypes.Email, user.Email ?? ""),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        foreach (var role in roles)
+        {
+            authClaims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        var key = Encoding.UTF8.GetBytes(_config["JwtSettings:Secret"]!);
+        var token = new JwtSecurityToken(
+            issuer: _config["JwtSettings:Issuer"],
+            audience: _config["JwtSettings:Audience"],
+            expires: DateTime.UtcNow.AddHours(2),
+            claims: authClaims,
+            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
+        );
+
+        return Ok(new
+        {
+            token = new JwtSecurityTokenHandler().WriteToken(token),
+            expiration = token.ValidTo,
+            user = new
+            {
+                user.Id,
+                user.UserName,
+                user.Email,
+                Role = roles.FirstOrDefault()
+            }
+        });
     }
 
-    /// <summary>
-    /// Assigns a role to a user (Admin only).
-    /// </summary>
-    /// <param name="request">The role assignment details.</param>
-    /// <returns>Returns success message.</returns>
     [HttpPost("assign-role")]
     [Authorize(Roles = "Admin")]
-    [SwaggerOperation(Summary = "Assign role to user (Admin only)", Description = "Assigns a specified role to a user.")]
-    [SwaggerResponse(200, "Role assigned successfully")]
-    [SwaggerResponse(404, "User not found")]
-    [SwaggerResponse(400, "Failed to assign role")]
     public async Task<IActionResult> AssignRoleToUser([FromBody] RoleAssignmentRequestDto request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -111,42 +129,37 @@ public class UserController : ControllerBase
         return Ok(new { message = $"Role {request.Role} assigned to {request.Email}" });
     }
 
-    /// <summary>
-    /// Retrieves all users (Admin only).
-    /// </summary>
-    /// <returns>Returns a list of users.</returns>
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    [SwaggerOperation(Summary = "Get all users (Admin only)", Description = "Fetches all registered users.")]
-    [SwaggerResponse(200, "Successfully retrieved all users", typeof(List<RegisterDto>))]
-    [SwaggerResponse(404, "No users available")]
     public async Task<IActionResult> GetAllUsers()
     {
         _logger.LogInformation("Admin fetching all users.");
 
-        var users = await _userService.GetAllUsersAsync();
-
-        if (users == null || users.Count == 0)
+        var users = _userManager.Users.ToList();
+        if (users.Count == 0)
         {
             _logger.LogWarning("No users found.");
             return NotFound("No users available.");
         }
 
-        return Ok(users.Select(user => new { user.Id, user.UserName, user.Email }));
+        var result = new List<object>();
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            result.Add(new
+            {
+                user.Id,
+                user.UserName,
+                user.Email,
+                Role = roles.FirstOrDefault() ?? "None"
+            });
+        }
+
+        return Ok(result);
     }
 
-    /// <summary>
-    /// Updates a user profile.
-    /// </summary>
-    /// <param name="id">User ID.</param>
-    /// <param name="dto">Updated user information.</param>
-    /// <returns>Returns success message.</returns>
     [HttpPut("{id}")]
-    [Authorize] 
-    [SwaggerOperation(Summary = "Update user profile", Description = "Updates user profile details. Users can only update their own profile.")]
-    [SwaggerResponse(200, "User updated successfully")]
-    [SwaggerResponse(403, "Forbidden - User can only update their own profile")]
-    [SwaggerResponse(400, "Invalid update request")]
+    [Authorize]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
     {
         var loggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -184,16 +197,8 @@ public class UserController : ControllerBase
         return Ok("User updated successfully");
     }
 
-    /// <summary>
-    /// Deletes a user (Admin only).
-    /// </summary>
-    /// <param name="id">User ID to delete.</param>
-    /// <returns>Returns success message.</returns>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    [SwaggerOperation(Summary = "Delete a user (Admin only)", Description = "Deletes a user from the system.")]
-    [SwaggerResponse(200, "User deleted successfully")]
-    [SwaggerResponse(404, "User not found")]
     public async Task<IActionResult> DeleteUser(string id)
     {
         _logger.LogInformation("Admin attempting to delete user with ID {UserId}.", id);

@@ -162,11 +162,12 @@ namespace Othello_API.Migrations
                 {
                     GameId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    GameStatus = table.Column<string>(type: "TEXT", nullable: false),
+                    GameStatus = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     Result = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Player1Id = table.Column<string>(type: "TEXT", nullable: true),
-                    Player2Id = table.Column<string>(type: "TEXT", nullable: true)
+                    Player2Id = table.Column<string>(type: "TEXT", nullable: true),
+                    WinnerId = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -183,26 +184,32 @@ namespace Othello_API.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Games_AspNetUsers_WinnerId",
+                        column: x => x.WinnerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
                 name: "LeaderBoard",
                 columns: table => new
                 {
-                    LeaderBoardId = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    UserId = table.Column<string>(type: "TEXT", nullable: false),
-                    Ranking = table.Column<int>(type: "INTEGER", nullable: false)
+                    PlayerId = table.Column<string>(type: "TEXT", nullable: false),
+                    Wins = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LeaderBoard", x => x.LeaderBoardId);
+                    table.PrimaryKey("PK_LeaderBoard", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_LeaderBoard_AspNetUsers_UserId",
-                        column: x => x.UserId,
+                        name: "FK_LeaderBoard_AspNetUsers_PlayerId",
+                        column: x => x.PlayerId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -242,6 +249,7 @@ namespace Othello_API.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<string>(type: "TEXT", nullable: false),
                     GameId = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsWinner = table.Column<bool>(type: "INTEGER", nullable: false),
                     TotalWins = table.Column<int>(type: "INTEGER", nullable: false),
                     TotalLosses = table.Column<int>(type: "INTEGER", nullable: false),
                     TotalGames = table.Column<int>(type: "INTEGER", nullable: false)
@@ -311,9 +319,14 @@ namespace Othello_API.Migrations
                 column: "Player2Id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LeaderBoard_UserId",
+                name: "IX_Games_WinnerId",
+                table: "Games",
+                column: "WinnerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LeaderBoard_PlayerId",
                 table: "LeaderBoard",
-                column: "UserId",
+                column: "PlayerId",
                 unique: true);
 
             migrationBuilder.CreateIndex(

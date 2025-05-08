@@ -153,8 +153,6 @@ public class Program
             dbContext.Database.Migrate();
 
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-
             string[] roleNames = { "Admin", "Player" };
 
             foreach (var roleName in roleNames)
@@ -164,37 +162,6 @@ public class Program
                     await roleManager.CreateAsync(new IdentityRole(roleName));
                     Console.WriteLine($"Role '{roleName}' created.");
                 }
-            }
-
-            var adminEmail = "angela.patarroyo@hotmail.com";
-            var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
-            if (adminUser == null)
-            {
-                var newAdmin = new ApplicationUser
-                {
-                    UserName = "admin",
-                    Email = adminEmail,
-                    EmailConfirmed = true
-                };
-
-                var result = await userManager.CreateAsync(newAdmin, "Angel@86");
-
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(newAdmin, "Admin");
-                    Console.WriteLine("✅ Admin user created.");
-                }
-                else
-                {
-                    Console.WriteLine("❌ Failed to create admin user:");
-                    foreach (var error in result.Errors)
-                        Console.WriteLine($"- {error.Description}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("ℹ️ Admin user already exists.");
             }
         }
 

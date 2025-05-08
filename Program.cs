@@ -86,12 +86,7 @@ public class Program
         {
             options.GeneralRules = new List<RateLimitRule>
             {
-                new RateLimitRule
-                {
-                    Endpoint = "*",
-                    Limit = 1000,
-                    Period = "1m"
-                }
+                new RateLimitRule { Endpoint = "*", Limit = 1000, Period = "1m" }
             };
         });
         builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
@@ -99,12 +94,11 @@ public class Program
         builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
-        builder.Services.AddControllers()
-            .AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.PropertyNamingPolicy = null;
-                options.JsonSerializerOptions.WriteIndented = true;
-            });
+        builder.Services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            options.JsonSerializerOptions.WriteIndented = true;
+        });
 
         builder.Services.AddScoped<IGameService, GameService>();
         builder.Services.AddScoped<IMoveService, MoveService>();
@@ -153,14 +147,34 @@ public class Program
             dbContext.Database.Migrate();
 
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-            string[] roleNames = { "Admin", "Player" };
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
+            string[] roleNames = { "Admin", "Player" };
             foreach (var roleName in roleNames)
             {
                 if (!await roleManager.RoleExistsAsync(roleName))
-                {
                     await roleManager.CreateAsync(new IdentityRole(roleName));
-                    Console.WriteLine($"Role '{roleName}' created.");
+            }
+
+            // Safe admin creation
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+            {
+                var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+                if (existingAdmin == null)
+                {
+                    var newAdmin = new ApplicationUser
+                    {
+                        UserName = "admin",
+                        Email = adminEmail,
+                        EmailConfirmed = true
+                    };
+
+                    var result = await userManager.CreateAsync(newAdmin, adminPassword);
+                    if (result.Succeeded)
+                        await userManager.AddToRoleAsync(newAdmin, "Admin");
                 }
             }
         }

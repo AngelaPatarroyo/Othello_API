@@ -15,7 +15,7 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Env.Load();
+        Env.Load(); // This only works locally
 
         var builder = WebApplication.CreateBuilder(args);
 
@@ -26,8 +26,7 @@ public class Program
             .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
             .Build();
 
-        var dbConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
-                           ?? "Data Source=/app/OthelloDB.sqlite";
+        var dbConnection = config["DEFAULT_CONNECTION"] ?? "Data Source=/app/OthelloDB.sqlite";
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(dbConnection));
@@ -43,7 +42,7 @@ public class Program
         builder.Services.AddScoped<SignInManager<ApplicationUser>>();
         builder.Services.AddHttpContextAccessor();
 
-        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? config["JwtSettings:Secret"];
+        var jwtSecret = config["JWT_SECRET"];
         if (string.IsNullOrEmpty(jwtSecret))
             throw new InvalidOperationException("JWT Secret is missing.");
 
@@ -57,10 +56,8 @@ public class Program
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = true,
-                    ValidIssuer = config["JwtSettings:Issuer"],
-                    ValidateAudience = true,
-                    ValidAudience = config["JwtSettings:Audience"],
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
@@ -156,9 +153,8 @@ public class Program
                     await roleManager.CreateAsync(new IdentityRole(roleName));
             }
 
-            // Safe admin creation
-            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+            var adminEmail = config["ADMIN_EMAIL"];
+            var adminPassword = config["ADMIN_PASSWORD"];
 
             if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {

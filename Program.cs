@@ -9,6 +9,7 @@ using Othello_API.Services;
 using Othello_API.Repositories;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Othello_API.Models;
 
 public class Program
 {
@@ -31,7 +32,6 @@ public class Program
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(dbConnection));
 
-        // Identity sin cookies
         builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
             options.User.RequireUniqueEmail = true;
@@ -40,11 +40,9 @@ public class Program
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        // Registro manual para SignInManager y IHttpContextAccessor
         builder.Services.AddScoped<SignInManager<ApplicationUser>>();
         builder.Services.AddHttpContextAccessor();
 
-        // JWT
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? config["JwtSettings:Secret"];
         if (string.IsNullOrEmpty(jwtSecret))
             throw new InvalidOperationException("JWT Secret is missing.");
@@ -155,16 +153,48 @@ public class Program
             dbContext.Database.Migrate();
 
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
             string[] roleNames = { "Admin", "Player" };
 
             foreach (var roleName in roleNames)
             {
-                var roleExists = await roleManager.RoleExistsAsync(roleName);
-                if (!roleExists)
+                if (!await roleManager.RoleExistsAsync(roleName))
                 {
                     await roleManager.CreateAsync(new IdentityRole(roleName));
                     Console.WriteLine($"Role '{roleName}' created.");
                 }
+            }
+
+            var adminEmail = "angela.patarroyo@hotmail.com";
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+            if (adminUser == null)
+            {
+                var newAdmin = new ApplicationUser
+                {
+                    UserName = "admin",
+                    Email = adminEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(newAdmin, "Angel@86");
+
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(newAdmin, "Admin");
+                    Console.WriteLine("✅ Admin user created.");
+                }
+                else
+                {
+                    Console.WriteLine("❌ Failed to create admin user:");
+                    foreach (var error in result.Errors)
+                        Console.WriteLine($"- {error.Description}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("ℹ️ Admin user already exists.");
             }
         }
 

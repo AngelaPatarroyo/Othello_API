@@ -6,7 +6,6 @@ using Othello_API.Models;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
-
 [Route("api/[controller]")]
 [ApiController]
 public class GameController : ControllerBase
@@ -67,21 +66,22 @@ public class GameController : ControllerBase
     [SwaggerResponse(400, "Invalid challenge request")]
     public async Task<IActionResult> ChallengePlayer([FromBody] ChallengeRequestDto request)
     {
-        var challengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (challengerId == null)
+        var player1Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(player1Id) || string.IsNullOrWhiteSpace(request.Player2Id))
         {
-            return Unauthorized();
+            return BadRequest(new { message = "Player1Id and Player2Id are required." });
         }
 
-        if (challengerId == request.OpponentId)
+        if (player1Id == request.Player2Id)
         {
             return BadRequest("You cannot challenge yourself.");
         }
 
         var game = await _gameService.CreateGameAsync(new StartGameDto
         {
-            Player1Id = challengerId,
-            Player2Id = request.OpponentId
+            Player1Id = player1Id,
+            Player2Id = request.Player2Id
         });
 
         if (game == null)
@@ -94,9 +94,13 @@ public class GameController : ControllerBase
             .Include(g => g.Player2)
             .FirstOrDefaultAsync(g => g.GameId == game.GameId);
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        if (game == null)
+        {
+            _logger.LogError("Game not found after creation.");
+            return BadRequest("Failed to load game after creation.");
+        }
+
         return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, new GameDto(game));
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
     }
 
     [HttpGet("{gameId}")]

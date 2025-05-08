@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 
-
 public class LeaderBoardService : ILeaderBoardService
 {
     private readonly ApplicationDbContext _context;
@@ -12,22 +11,35 @@ public class LeaderBoardService : ILeaderBoardService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    // Fetch full leaderboard
     public async Task<List<LeaderBoardDto>> GetLeaderboardAsync()
     {
         _logger.LogInformation("Fetching full leaderboard.");
 
-        var leaderboard = await _context.LeaderBoard
-            .Include(l => l.Player)
-            .Where(l => l.Player != null)
-            .Select(lb => new LeaderBoardDto
+        var users = await _context.Users.ToListAsync();
+        var games = await _context.Games.ToListAsync();
+
+        var leaderboard = users.Select(user =>
+        {
+            var userGames = games.Where(g => g.Player1Id == user.Id || g.Player2Id == user.Id).ToList();
+            int wins = userGames.Count(g => g.WinnerId == user.Id);
+            int losses = userGames.Count(g => g.WinnerId != null && g.WinnerId != user.Id);
+            int draws = userGames.Count(g => g.WinnerId == null);
+            int total = userGames.Count;
+            double winRate = total > 0 ? (double)wins / total * 100 : 0;
+
+            return new LeaderBoardDto
             {
-                PlayerId = lb.PlayerId,
-                PlayerName = lb.Player.UserName ?? "Unknown",
-                Wins = lb.Wins
-            })
-            .OrderByDescending(l => l.Wins)
-            .ToListAsync();
+                PlayerId = user.Id,
+                PlayerName = user.UserName ?? "Unknown",
+                Wins = wins,
+                Losses = losses,
+                Draws = draws,
+                TotalGames = total,
+                WinRate = winRate
+            };
+        })
+        .OrderByDescending(x => x.Wins)
+        .ToList();
 
         if (leaderboard.Count == 0)
         {
@@ -41,12 +53,11 @@ public class LeaderBoardService : ILeaderBoardService
         return leaderboard;
     }
 
-    // Fetch ranking of a specific user
     public async Task<LeaderBoardDto?> GetUserRankingAsync(string userId)
     {
         _logger.LogInformation("Fetching ranking for UserId: {UserId}.", userId);
 
-        var leaderboard = await GetLeaderboardAsync(); // Get full leaderboard
+        var leaderboard = await GetLeaderboardAsync();
         var userRanking = leaderboard.FirstOrDefault(l => l.PlayerId == userId);
 
         if (userRanking == null)

@@ -19,10 +19,12 @@ public class LeaderboardController : ControllerBase
     /// <summary>
     /// Retrieves the full leaderboard rankings. (Admin only)
     /// </summary>
-    /// <returns>Returns a list of users ranked by performance.</returns>
+    /// <remarks>
+    /// Each leaderboard entry includes PlayerId, PlayerName, Wins, Losses, Draws, TotalGames, and WinRate.
+    /// </remarks>
     [HttpGet]
-    [Authorize(Roles = "Admin")] //  Full leaderboard restricted to Admins only
-    [SwaggerOperation(Summary = "Get full leaderboard (Admin only)", Description = "Fetches the full leaderboard rankings. Requires Admin role.")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Get full leaderboard (Admin only)", Description = "Fetches the full leaderboard including stats like Wins, Losses, Draws, and WinRate. Requires Admin role.")]
     [SwaggerResponse(200, "Successfully retrieved leaderboard rankings", typeof(List<LeaderBoardDto>))]
     [SwaggerResponse(404, "No rankings found")]
     [SwaggerResponse(500, "Internal server error")]
@@ -54,9 +56,11 @@ public class LeaderboardController : ControllerBase
     /// Retrieves the ranking for a specific user.
     /// </summary>
     /// <param name="userId">The ID of the user whose ranking is to be retrieved.</param>
-    /// <returns>Returns the ranking details for the specified user.</returns>
+    /// <remarks>
+    /// Returns the full leaderboard stats for the user, including WinRate and TotalGames.
+    /// </remarks>
     [HttpGet("{userId}")]
-    [SwaggerOperation(Summary = "Get user ranking", Description = "Fetches the ranking for a specific user by their ID.")]
+    [SwaggerOperation(Summary = "Get user ranking", Description = "Fetches the leaderboard stats for a specific user by ID.")]
     [SwaggerResponse(200, "Successfully retrieved user ranking", typeof(LeaderBoardDto))]
     [SwaggerResponse(404, "User ranking not found")]
     [SwaggerResponse(500, "Internal server error")]

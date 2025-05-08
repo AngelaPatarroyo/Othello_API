@@ -1,7 +1,13 @@
+using System.Text.Json.Serialization;
+
 namespace Othello_API.DTOs
 {
     public class ChallengeRequestDto
     {
-        public string OpponentId { get; set; } = string.Empty;
+        [JsonPropertyName("player1Id")]
+        public string Player1Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("player2Id")]
+        public string Player2Id { get; set; } = string.Empty;
     }
 }

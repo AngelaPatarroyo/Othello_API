@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Othello_API.DTOs;
 using Othello_API.Models;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+
 
 [Route("api/[controller]")]
 [ApiController]
@@ -56,6 +58,45 @@ public class GameController : ControllerBase
         _logger.LogInformation("Game {GameId} successfully started.", game.GameId);
 
         return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, new GameDto(game));
+    }
+
+    [HttpPost("challenge")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Challenge another user to a game", Description = "Authenticated user challenges another player to a game.")]
+    [SwaggerResponse(201, "Game successfully created", typeof(GameDto))]
+    [SwaggerResponse(400, "Invalid challenge request")]
+    public async Task<IActionResult> ChallengePlayer([FromBody] ChallengeRequestDto request)
+    {
+        var challengerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (challengerId == null)
+        {
+            return Unauthorized();
+        }
+
+        if (challengerId == request.OpponentId)
+        {
+            return BadRequest("You cannot challenge yourself.");
+        }
+
+        var game = await _gameService.CreateGameAsync(new StartGameDto
+        {
+            Player1Id = challengerId,
+            Player2Id = request.OpponentId
+        });
+
+        if (game == null)
+        {
+            return BadRequest("Failed to create game.");
+        }
+
+        game = await _context.Games
+            .Include(g => g.Player1)
+            .Include(g => g.Player2)
+            .FirstOrDefaultAsync(g => g.GameId == game.GameId);
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        return CreatedAtAction(nameof(GetGame), new { gameId = game.GameId }, new GameDto(game));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
     }
 
     [HttpGet("{gameId}")]

@@ -42,7 +42,7 @@ namespace Othello_API.Services
 
             if (result.Succeeded)
             {
-                var defaultRole = "Admin"; // Change to "Player" if default should be player
+                var defaultRole = "Player"; // ✅ Correct default role
                 var roleExists = await _dbContext.Roles.AnyAsync(r => r.Name == defaultRole);
                 if (!roleExists)
                 {

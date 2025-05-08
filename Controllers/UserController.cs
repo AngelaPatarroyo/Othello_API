@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Othello_API.Dtos;
 using Othello_API.Interfaces;
+using Othello_API.Models;
 using Swashbuckle.AspNetCore.Annotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -17,17 +19,20 @@ public class UserController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<UserController> _logger;
     private readonly IConfiguration _config;
+    private readonly ApplicationDbContext _context;
 
     public UserController(
         IUserService userService,
         UserManager<ApplicationUser> userManager,
         ILogger<UserController> logger,
-        IConfiguration config)
+        IConfiguration config,
+        ApplicationDbContext context)
     {
         _userService = userService;
         _userManager = userManager;
         _logger = logger;
         _config = config;
+        _context = context;
     }
 
     [HttpPost("register")]
@@ -156,6 +161,25 @@ public class UserController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [HttpGet("available")]
+    [Authorize]
+    public async Task<IActionResult> GetAvailablePlayers()
+    {
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var users = await _context.Users
+            .Where(u => u.Id != currentUserId)
+            .Select(u => new
+            {
+                u.Id,
+                u.UserName,
+                u.Email
+            })
+            .ToListAsync();
+
+        return Ok(users);
     }
 
     [HttpPut("{id}")]

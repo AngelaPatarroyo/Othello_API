@@ -15,18 +15,12 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Env.Load(); // This only works locally
+        Env.Load(); // Only works locally, harmless in production
 
         var builder = WebApplication.CreateBuilder(args);
 
-        var config = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddEnvironmentVariables()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-            .Build();
-
-        var dbConnection = config["DEFAULT_CONNECTION"] ?? "Data Source=/app/OthelloDB.sqlite";
+        // Database connection
+        var dbConnection = builder.Configuration["DEFAULT_CONNECTION"] ?? "Data Source=/app/OthelloDB.sqlite";
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(dbConnection));
@@ -42,7 +36,8 @@ public class Program
         builder.Services.AddScoped<SignInManager<ApplicationUser>>();
         builder.Services.AddHttpContextAccessor();
 
-        var jwtSecret = config["JWT_SECRET"];
+        // JWT configuration
+        var jwtSecret = builder.Configuration["JWT_SECRET"];
         if (string.IsNullOrEmpty(jwtSecret))
             throw new InvalidOperationException("JWT Secret is missing.");
 
@@ -137,6 +132,7 @@ public class Program
 
         var app = builder.Build();
 
+        // Seed admin user and roles
         using (var scope = app.Services.CreateScope())
         {
             var services = scope.ServiceProvider;
@@ -153,8 +149,8 @@ public class Program
                     await roleManager.CreateAsync(new IdentityRole(roleName));
             }
 
-            var adminEmail = config["ADMIN_EMAIL"];
-            var adminPassword = config["ADMIN_PASSWORD"];
+            var adminEmail = builder.Configuration["ADMIN_EMAIL"];
+            var adminPassword = builder.Configuration["ADMIN_PASSWORD"];
 
             if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {

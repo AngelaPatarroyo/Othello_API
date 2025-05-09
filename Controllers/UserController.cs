@@ -237,4 +237,22 @@ public class UserController : ControllerBase
         _logger.LogInformation("User deleted successfully.");
         return Ok("User deleted successfully");
     }
+
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetUserById(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null)
+        {
+            _logger.LogWarning("User with ID {UserId} not found.", id);
+            return NotFound();
+        }
+
+        return Ok(new
+        {
+            id = user.Id,
+            userName = user.UserName
+        });
+    }
 }

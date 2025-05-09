@@ -78,45 +78,70 @@ public class GameService : IGameService
 
         game.GameStatus = dto.GameStatus;
 
+        if (string.IsNullOrEmpty(game.Player1Id))
+            throw new ArgumentException("Player1Id cannot be null or empty.");
+
+        var player1 = await _userRepository.GetByIdAsync(game.Player1Id);
+        var player2 = game.Player2Id != null 
+            ? await _userRepository.GetByIdAsync(game.Player2Id) 
+            : null;
+
+        if (player1 == null || player2 == null)
+            return false;
+
         if (!string.IsNullOrEmpty(dto.WinnerId))
         {
-            var winner = await _userRepository.GetByIdAsync(dto.WinnerId);
-            if (winner != null && (winner.Id == game.Player1Id || winner.Id == game.Player2Id))
-            {
-                game.Winner = winner;
-                game.WinnerId = winner.Id;
+            game.WinnerId = dto.WinnerId;
 
-                // Leaderboard update
-                var leaderboard = await _gameRepository.GetLeaderboardEntryByPlayerIdAsync(winner.Id);
-                if (leaderboard != null)
-                {
-                    leaderboard.Wins++;
-                    await _gameRepository.UpdateLeaderboardAsync(leaderboard);
-                }
-                else
-                {
-                    await _gameRepository.AddLeaderboardEntryAsync(new LeaderBoard
-                    {
-                        PlayerId = winner.Id,
-                        Wins = 1,
-                        Player = winner
-                    });
-                }
+            var winner = dto.WinnerId == player1.Id ? player1 : player2;
+            var loser = dto.WinnerId == player1.Id ? player2 : player1;
 
-                // Track both players in UserGames
-                var loserId = (winner.Id == game.Player1Id) ? game.Player2Id : game.Player1Id;
+            winner.Wins++;
+            winner.TotalGames++;
+            winner.WinRate = (double)winner.Wins / winner.TotalGames * 100;
 
-                _context.UserGames.AddRange(
-                    new UserGame { UserId = winner.Id, GameId = game.GameId, IsWinner = true },
-                    new UserGame { UserId = loserId, GameId = game.GameId, IsWinner = false }
-                );
+            loser.Losses++;
+            loser.TotalGames++;
+            loser.WinRate = (double)loser.Wins / loser.TotalGames * 100;
 
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("UserGames updated for game ID {GameId}", game.GameId);
-            }
+            await _userRepository.UpdateAsync(winner);
+            await _userRepository.UpdateAsync(loser);
+
+            await EnsureLeaderboardEntryAsync(winner);
+            await EnsureLeaderboardEntryAsync(loser);
+
+            _context.UserGames.AddRange(
+                new UserGame { UserId = winner.Id, GameId = game.GameId, IsWinner = true },
+                new UserGame { UserId = loser.Id, GameId = game.GameId, IsWinner = false }
+            );
+        }
+        else
+        {
+            player1.Draws++;
+            player2.Draws++;
+
+            player1.TotalGames++;
+            player2.TotalGames++;
+
+            player1.WinRate = (double)player1.Wins / player1.TotalGames * 100;
+            player2.WinRate = (double)player2.Wins / player2.TotalGames * 100;
+
+            await _userRepository.UpdateAsync(player1);
+            await _userRepository.UpdateAsync(player2);
+
+            await EnsureLeaderboardEntryAsync(player1);
+            await EnsureLeaderboardEntryAsync(player2);
+
+            _context.UserGames.AddRange(
+                new UserGame { UserId = player1.Id, GameId = game.GameId, IsWinner = false },
+                new UserGame { UserId = player2.Id, GameId = game.GameId, IsWinner = false }
+            );
         }
 
+        await _context.SaveChangesAsync();
         await _gameRepository.UpdateAsync(game);
+
+        _logger.LogInformation("Updated stats and leaderboard for game ID {GameId}", game.GameId);
         return true;
     }
 
@@ -129,5 +154,24 @@ public class GameService : IGameService
     public void GetGameById(int gameId)
     {
         throw new NotImplementedException();
+    }
+
+    private async Task EnsureLeaderboardEntryAsync(ApplicationUser user)
+    {
+        var entry = await _gameRepository.GetLeaderboardEntryByPlayerIdAsync(user.Id);
+        if (entry == null)
+        {
+            await _gameRepository.AddLeaderboardEntryAsync(new LeaderBoard
+            {
+                PlayerId = user.Id,
+                Wins = user.Wins,
+                Player = user
+            });
+        }
+        else
+        {
+            entry.Wins = user.Wins;
+            await _gameRepository.UpdateLeaderboardAsync(entry);
+        }
     }
 }
